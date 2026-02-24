@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -14,6 +15,10 @@ class TripModelTests(TestCase):
         self.bus = Bus.objects.create(matricule="TB-01", capacity=2)
         self.route = Route.objects.create(bus=self.bus, direction="A -> B")
         self.trip = Trip.objects.create(route=self.route, depart_time=timezone.now())
+        self.user = get_user_model().objects.create_user(
+            username="tripmodel_user",
+            password="password123",
+        )
 
     def test_new_trip_is_created_with_created_status(self):
         trip = Trip.objects.create(
@@ -25,11 +30,11 @@ class TripModelTests(TestCase):
 
     def test_seats_left_calculation(self):
         self.assertEqual(self.trip.seats_left(), 2)
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.assertEqual(self.trip.seats_left(), 1)
 
     def test_start_success(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.trip.start()
         self.assertEqual(self.trip.status, Trip.STATUS_STARTED)
         self.assertIsNotNone(self.trip.start_trip_at)
@@ -39,7 +44,7 @@ class TripModelTests(TestCase):
             self.trip.start()
 
     def test_end_success(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.trip.start()
         self.trip.end()
         self.assertEqual(self.trip.status, Trip.STATUS_ENDED)
@@ -50,14 +55,14 @@ class TripModelTests(TestCase):
             self.trip.end()
 
     def test_started_trip_freezes_structure(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.trip.start()
         self.trip.depart_time = timezone.now()
         with self.assertRaises(ValueError):
             self.trip.save()
 
     def test_ended_trip_freezes_structure(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.trip.start()
         self.trip.end()
         self.trip.depart_time = timezone.now()
@@ -71,6 +76,10 @@ class TripApiTests(TestCase):
         self.bus = Bus.objects.create(matricule="TB-10", capacity=3)
         self.route = Route.objects.create(bus=self.bus, direction="C -> D")
         self.trip = Trip.objects.create(route=self.route, depart_time=timezone.now())
+        self.user = get_user_model().objects.create_user(
+            username="tripapi_user",
+            password="password123",
+        )
 
     def test_list_trips(self):
         response = self.client.get("/api/v1/trips/")
@@ -112,7 +121,7 @@ class TripApiTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_trip_rejects_structural_changes_after_start(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.client.post(f"/api/v1/trips/{self.trip.id}/start/")
         with self.assertRaises(ValueError):
             self.client.put(
@@ -130,26 +139,26 @@ class TripApiTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_delete_trip_rejects_with_reservations(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         response = self.client.delete(f"/api/v1/trips/{self.trip.id}/")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(response.data["code"], "protected_delete")
 
     def test_start_endpoint_success(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         response = self.client.post(f"/api/v1/trips/{self.trip.id}/start/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("start_trip_at", response.data)
 
     def test_start_endpoint_rejects_second_start(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.client.post(f"/api/v1/trips/{self.trip.id}/start/")
         response = self.client.post(f"/api/v1/trips/{self.trip.id}/start/")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["code"], "lifecycle_error")
 
     def test_end_endpoint_success(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.client.post(f"/api/v1/trips/{self.trip.id}/start/")
         response = self.client.post(f"/api/v1/trips/{self.trip.id}/end/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -161,7 +170,7 @@ class TripApiTests(TestCase):
         self.assertEqual(response.data["code"], "lifecycle_error")
 
     def test_end_endpoint_rejects_second_end(self):
-        Reservation.objects.create(trip=self.trip, passenger_name="Ali")
+        Reservation.objects.create(trip=self.trip, user=self.user)
         self.client.post(f"/api/v1/trips/{self.trip.id}/start/")
         self.client.post(f"/api/v1/trips/{self.trip.id}/end/")
         response = self.client.post(f"/api/v1/trips/{self.trip.id}/end/")

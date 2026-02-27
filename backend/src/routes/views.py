@@ -3,6 +3,7 @@ import logging
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 
 from .models import Route
+from .permissions import CanCrudRoute
 from .serializers import RouteSerializer
 
 audit_logger = logging.getLogger("audit")
@@ -18,6 +19,7 @@ def _audit_user(request):
 class RouteListCreateView(ListCreateAPIView):
     queryset = Route.objects.all()
     serializer_class = RouteSerializer
+    permission_classes = [CanCrudRoute]
 
     def perform_create(self, serializer):
         route = serializer.save()
@@ -32,6 +34,7 @@ class RouteListCreateView(ListCreateAPIView):
 class RouteDetailView(RetrieveUpdateDestroyAPIView):
     queryset = Route.objects.all()
     serializer_class = RouteSerializer
+    permission_classes = [CanCrudRoute]
 
     def perform_destroy(self, instance):
         route_id = instance.id

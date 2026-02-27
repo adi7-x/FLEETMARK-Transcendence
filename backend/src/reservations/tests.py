@@ -28,6 +28,12 @@ class ReservationModelTests(TestCase):
 class ReservationApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.admin = get_user_model().objects.create_superuser(
+            username="reservation_admin",
+            password="password123",
+            role="admin",
+        )
+        self.client.force_authenticate(user=self.admin)
         self.bus = Bus.objects.create(matricule="RS-10", capacity=2)
         self.route = Route.objects.create(bus=self.bus, direction="Alpha -> Beta")
         self.trip = Trip.objects.create(route=self.route, depart_time=timezone.now())

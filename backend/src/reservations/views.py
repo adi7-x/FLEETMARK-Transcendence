@@ -6,6 +6,7 @@ from core.exceptions import CapacityError, LifecycleError
 from trips.models import Trip
 
 from .models import Reservation
+from .permissions import CanManageReservation
 from .serializers import ReservationSerializer
 
 audit_logger = logging.getLogger("audit")
@@ -21,6 +22,7 @@ def _audit_user(request):
 class ReservationListCreateView(ListCreateAPIView):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
+    permission_classes = [CanManageReservation]
 
     def perform_create(self, serializer):
         trip = serializer.validated_data["trip"]
@@ -43,6 +45,7 @@ class ReservationListCreateView(ListCreateAPIView):
 class ReservationDetailView(RetrieveDestroyAPIView):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
+    permission_classes = [CanManageReservation]
 
     def perform_destroy(self, instance):
         reservation_id = instance.id

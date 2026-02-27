@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -18,6 +19,12 @@ class RouteModelTests(TestCase):
 class RouteApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.admin = get_user_model().objects.create_superuser(
+            username="route_admin",
+            password="password123",
+            role="admin",
+        )
+        self.client.force_authenticate(user=self.admin)
         self.bus = Bus.objects.create(matricule="RB-10", capacity=32)
         self.route = Route.objects.create(bus=self.bus, direction="North -> South")
 
@@ -85,4 +92,3 @@ class RouteApiTests(TestCase):
         response = self.client.delete(f"/api/v1/routes/{self.route.id}/")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(response.data["code"], "protected_delete")
-

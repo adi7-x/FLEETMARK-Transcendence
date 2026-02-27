@@ -3,6 +3,7 @@ import logging
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 
 from .models import Bus
+from .permissions import CanCrudBus
 from .serializers import BusSerializer
 
 audit_logger = logging.getLogger("audit")
@@ -18,6 +19,7 @@ def _audit_user(request):
 class BusListCreateView(ListCreateAPIView):
     queryset = Bus.objects.all()
     serializer_class = BusSerializer
+    permission_classes = [CanCrudBus]
 
     def perform_create(self, serializer):
         bus = serializer.save()
@@ -31,6 +33,7 @@ class BusListCreateView(ListCreateAPIView):
 class BusDetailView(RetrieveUpdateDestroyAPIView):
     queryset = Bus.objects.all()
     serializer_class = BusSerializer
+    permission_classes = [CanCrudBus]
 
     def perform_destroy(self, instance):
         bus_id = instance.id

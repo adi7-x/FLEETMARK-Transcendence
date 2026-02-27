@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -31,6 +32,12 @@ class BusModelTests(TestCase):
 class BusApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.admin = get_user_model().objects.create_superuser(
+            username="bus_admin",
+            password="password123",
+            role="admin",
+        )
+        self.client.force_authenticate(user=self.admin)
         self.bus = Bus.objects.create(matricule="BUS-10", capacity=50)
 
     def test_list_buses(self):
@@ -95,4 +102,3 @@ class BusApiTests(TestCase):
         response = self.client.delete(f"/api/v1/buses/{self.bus.id}/")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(response.data["code"], "protected_delete")
-

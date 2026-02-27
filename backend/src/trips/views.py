@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from core.exceptions import LifecycleError
 
 from .models import Trip
+from .permissions import CanCrudTrip, CanManageTripLifecycle
 from .serializers import TripSerializer
 
 audit_logger = logging.getLogger("audit")
@@ -23,6 +24,7 @@ def _audit_user(request):
 class TripListCreateView(ListCreateAPIView):
     queryset = Trip.objects.all()
     serializer_class = TripSerializer
+    permission_classes = [CanCrudTrip]
 
     def perform_create(self, serializer):
         trip = serializer.save()
@@ -39,6 +41,7 @@ class TripListCreateView(ListCreateAPIView):
 class TripDetailView(RetrieveUpdateDestroyAPIView):
     queryset = Trip.objects.all()
     serializer_class = TripSerializer
+    permission_classes = [CanCrudTrip]
 
     def perform_destroy(self, instance):
         trip_id = instance.id
@@ -51,6 +54,8 @@ class TripDetailView(RetrieveUpdateDestroyAPIView):
 
 
 class StartTripView(APIView):
+    permission_classes = [CanManageTripLifecycle]
+
     def post(self, request, pk):
         trip = Trip.objects.get(pk=pk)
         before_status = trip.status
@@ -70,6 +75,8 @@ class StartTripView(APIView):
 
 
 class EndTripView(APIView):
+    permission_classes = [CanManageTripLifecycle]
+
     def post(self, request, pk):
         trip = Trip.objects.get(pk=pk)
         before_status = trip.status

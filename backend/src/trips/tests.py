@@ -73,6 +73,12 @@ class TripModelTests(TestCase):
 class TripApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.admin = get_user_model().objects.create_superuser(
+            username="trip_admin",
+            password="password123",
+            role="admin",
+        )
+        self.client.force_authenticate(user=self.admin)
         self.bus = Bus.objects.create(matricule="TB-10", capacity=3)
         self.route = Route.objects.create(bus=self.bus, direction="C -> D")
         self.trip = Trip.objects.create(route=self.route, depart_time=timezone.now())

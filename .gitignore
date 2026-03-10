@@ -47,6 +47,9 @@ staticfiles/
 # Docker
 postgres-data/
 
+# Database
+database/db_data/
+
 # macOS
 .DS_Store
 

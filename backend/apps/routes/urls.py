@@ -1,3 +1,8 @@
 from django.urls import path
 
-urlpatterns = []
+from apps.routes.views import RouteDetailView, RouteListCreateView
+
+urlpatterns = [
+	path('', RouteListCreateView.as_view(), name='route-list-create'),
+	path('<uuid:pk>/', RouteDetailView.as_view(), name='route-detail'),
+]

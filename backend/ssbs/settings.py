@@ -116,6 +116,15 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+    },
+    'EXCEPTION_HANDLER': 'apps.core.exception_handler.api_exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -134,3 +143,8 @@ INTRA_42_REDIRECT_URI = os.environ.get(
     'http://localhost:8000/api/v1/auth/42/callback/',
 )
 ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Public API Key
+# ──────────────────────────────────────────────────────────────────────────────
+SSBS_API_KEY = os.environ.get('SSBS_API_KEY', '')

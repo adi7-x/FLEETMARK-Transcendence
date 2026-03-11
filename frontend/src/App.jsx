@@ -1,24 +1,18 @@
 // src/App.jsx
 import React, { useEffect, useState } from 'react';
-
-// ── Vite env vars (VITE_ prefix, accessed via import.meta.env) ──────────────
-// VITE_API_URL is set in docker-compose.yml → "http://localhost:8000/api"
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import AuthCallback from './components/AuthCallback';
+import { auth, isAuthenticated } from './services/api';
 
 const App = () => {
-  const [user, setUser] = useState(null);       // logged-in user profile
-  const [loading, setLoading] = useState(false); // callback in progress
-  const [error, setError] = useState(null);      // error message
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // ── Step 1: Ask backend for the 42 OAuth authorization URL ────────────
+  // Handle login - redirect to 42 OAuth
   const handleLogin = async () => {
     try {
-      // GET /api/v1/auth/42/login/ → returns { authorization_url: "https://api.intra.42.fr/..." }
-      const response = await fetch(`${API_URL}/v1/auth/42/login/`);
-      const data = await response.json();
+      const data = await auth.getLoginUrl();
       console.log('OAuth URL received:', data.authorization_url);
-
-      // Redirect the browser to 42 Intra login page
       window.location.href = data.authorization_url;
     } catch (err) {
       console.error('Error fetching OAuth URL:', err);
@@ -26,127 +20,182 @@ const App = () => {
     }
   };
 
-  // ── Step 2: Handle the callback ───────────────────────────────────────
-  // After 42 auth, the backend redirects here with tokens in the URL hash:
-  //   /auth/callback#access=JWT&refresh=JWT&role=STUDENT&login=adbourji
-  // We parse the hash fragment, store tokens, and load the profile.
-  const handleCallback = async () => {
-    // Parse tokens from URL hash (fragment) — e.g. #access=xxx&refresh=yyy
-    const hash = window.location.hash.substring(1); // remove leading #
-    const params = new URLSearchParams(hash);
-    const access = params.get('access');
-    const refresh = params.get('refresh');
-    const role = params.get('role');
-    const login = params.get('login');
-
-    if (access && refresh) {
-      console.log('Tokens received via hash:', { role, login });
-
-      // Store JWT tokens
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
-
-      // Clean the URL
-      window.history.replaceState({}, '', '/');
-
-      // Fetch full profile using the JWT
-      await fetchProfile();
-    } else {
-      // Fallback: maybe code is in query params (frontend-handled flow)
-      const code = new URLSearchParams(window.location.search).get('code');
-      if (code) {
-        setLoading(true);
-        try {
-          const response = await fetch(
-            `${API_URL}/v1/auth/42/callback/?code=${encodeURIComponent(code)}`
-          );
-          const data = await response.json();
-          console.log('Callback response:', data);
-
-          if (!response.ok) {
-            setError(data.error || 'Login failed.');
-            if (data.detail) console.error('42 said:', data.detail);
-            setLoading(false);
-            return;
-          }
-
-          localStorage.setItem('access_token', data.access);
-          localStorage.setItem('refresh_token', data.refresh);
-          setUser(data.user);
-          window.history.replaceState({}, '', '/');
-        } catch (err) {
-          console.error('Callback error:', err);
-          setError('Callback failed — check console.');
-        }
-        setLoading(false);
-      }
-    }
+  // Handle successful authentication
+  const handleAuth = (userData) => {
+    setUser(userData);
+    setError(null);
   };
 
-  // ── Fetch profile using stored JWT (on page reload) ───────────────────
-  const fetchProfile = async () => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return;
+  // Load user profile on app start
+  const loadProfile = async () => {
+    if (!isAuthenticated()) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      // GET /api/v1/auth/me/ with Authorization: Bearer <jwt>
-      const response = await fetch(`${API_URL}/v1/auth/me/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Profile loaded:', data);
-        setUser(data);
-      } else {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-      }
+      const userData = await auth.getProfile();
+      setUser(userData);
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('Error loading profile:', err);
+      auth.logout(); // Clear invalid tokens
     }
+    setLoading(false);
   };
 
+  // Handle logout
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    auth.logout();
     setUser(null);
   };
 
-  // On mount: check if we're on the callback path, or try loading profile
+  // Load profile on mount
   useEffect(() => {
-    if (window.location.pathname === '/auth/callback') {
-      handleCallback();
-    } else {
-      fetchProfile();
-    }
+    loadProfile();
   }, []);
 
-  // ── Render ────────────────────────────────────────────────────────────
-  if (loading) return <h2>Logging in with 42 ...</h2>;
+  // Show callback handler if on callback route
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallback onAuth={handleAuth} />;
+  }
 
-  if (user) {
+  // Show loading state
+  if (loading) {
     return (
-      <div style={{ padding: 20 }}>
-        <h1>Welcome, {user.login_42}!</h1>
-        <h3>Role: {user.role}</h3>
-        <pre style={{ background: '#f4f4f4', padding: 12 }}>
-          {JSON.stringify(user, null, 2)}
-        </pre>
-        <p>
-          Dashboard: {user.role === 'STUDENT'
-            ? '/student/dashboard'
-            : '/staff/dashboard'}
-        </p>
-        <button onClick={handleLogout}>Logout</button>
+      <div style={{ padding: 20, textAlign: 'center' }}>
+        <h2>Loading...</h2>
       </div>
     );
   }
 
+  // Show user dashboard if logged in
+  if (user) {
+    return (
+      <div style={{ padding: 20 }}>
+        <header style={{ borderBottom: '1px solid #ddd', paddingBottom: 15, marginBottom: 20 }}>
+          <h1>🚌 SSBS Dashboard</h1>
+          <p>Welcome back, <strong>{user.login_42}</strong>!</p>
+          <p>Role: <span style={{ 
+            background: user.role === 'STUDENT' ? '#e3f2fd' : '#f3e5f5',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '0.9em'
+          }}>{user.role}</span></p>
+        </header>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
+          {user.role === 'STUDENT' ? (
+            <>
+              <div style={{ border: '1px solid #ddd', padding: 15, borderRadius: 8 }}>
+                <h3>📍 My Station</h3>
+                <p>{user.station || 'Not assigned'}</p>
+              </div>
+              
+              <div style={{ border: '1px solid #ddd', padding: 15, borderRadius: 8 }}>
+                <h3>🎫 My Reservations</h3>
+                <button onClick={() => alert('Load reservations')}>View Reservations</button>
+              </div>
+              
+              <div style={{ border: '1px solid #ddd', padding: 15, borderRadius: 8 }}>
+                <h3>🚌 Available Trips</h3>
+                <button onClick={() => alert('Load trips')}>Browse Trips</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ border: '1px solid #ddd', padding: 15, borderRadius: 8 }}>
+                <h3>👥 Users</h3>
+                <button onClick={() => alert('Load users')}>Manage Users</button>
+              </div>
+              
+              <div style={{ border: '1px solid #ddd', padding: 15, borderRadius: 8 }}>
+                <h3>📍 Stations</h3>
+                <button onClick={() => alert('Load stations')}>Manage Stations</button>
+              </div>
+              
+              <div style={{ border: '1px solid #ddd', padding: 15, borderRadius: 8 }}>
+                <h3>🚌 Fleet</h3>
+                <button onClick={() => alert('Load buses')}>Manage Buses</button>
+              </div>
+              
+              <div style={{ border: '1px solid #ddd', padding: 15, borderRadius: 8 }}>
+                <h3>🎫 All Reservations</h3>
+                <button onClick={() => alert('Load all reservations')}>View All</button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div style={{ marginTop: 30, padding: 15, background: '#f5f5f5', borderRadius: 8 }}>
+          <h4>User Profile:</h4>
+          <pre style={{ fontSize: '0.8em', overflow: 'auto' }}>
+            {JSON.stringify(user, null, 2)}
+          </pre>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <button onClick={handleLogout} style={{ 
+            background: '#ff4444', 
+            color: 'white', 
+            border: 'none', 
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}>
+            Logout
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login page
   return (
-    <div style={{ padding: 20 }}>
-      <h1>SSBS — Smart School Bus System</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <button onClick={handleLogin}>Login with 42 Intra</button>
+    <div style={{ padding: 20, textAlign: 'center', maxWidth: 600, margin: '50px auto' }}>
+      <h1>🚌 SSBS</h1>
+      <h2>Smart School Bus System</h2>
+      
+      <div style={{ margin: '40px 0' }}>
+        <p>Welcome! Please log in with your 42 Intra account to access the system.</p>
+        
+        {error && (
+          <div style={{ 
+            background: '#ffebee', 
+            color: '#c62828', 
+            padding: 10, 
+            borderRadius: 5, 
+            margin: '20px 0' 
+          }}>
+            {error}
+          </div>
+        )}
+        
+        <button 
+          onClick={handleLogin}
+          style={{
+            background: '#00babc',
+            color: 'white',
+            border: 'none',
+            padding: '15px 30px',
+            fontSize: '16px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            marginTop: '20px'
+          }}
+        >
+          🔐 Login with 42 Intra
+        </button>
+      </div>
+      
+      <div style={{ fontSize: '0.9em', color: '#666', marginTop: 40 }}>
+        <p>Features:</p>
+        <ul style={{ textAlign: 'left', display: 'inline-block' }}>
+          <li>📍 Station management</li>
+          <li>🚌 Bus scheduling</li>
+          <li>🎫 Trip reservations</li>
+          <li>👥 Role-based access control</li>
+        </ul>
+      </div>
     </div>
   );
 };

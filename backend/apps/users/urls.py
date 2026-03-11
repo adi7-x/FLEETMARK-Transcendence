@@ -1,7 +1,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from apps.users.views import OAuth42CallbackView, OAuth42LoginView, ProfileView
+from apps.users.views import (
+    OAuth42CallbackView,
+    OAuth42LoginView,
+    ProfileView,
+    UserDetailView,
+    UserListView,
+)
 
 urlpatterns = [
     # 42 OAuth
@@ -13,4 +19,8 @@ urlpatterns = [
 
     # Profile
     path('me/', ProfileView.as_view(), name='profile'),
+
+    # User management (logistics staff only)
+    path('users/', UserListView.as_view(), name='user-list'),
+    path('users/<uuid:pk>/', UserDetailView.as_view(), name='user-detail'),
 ]

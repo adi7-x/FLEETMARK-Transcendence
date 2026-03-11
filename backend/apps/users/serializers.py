@@ -29,6 +29,25 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
 
+class UserAdminSerializer(serializers.ModelSerializer):
+    """Serializer for logistics staff to view, edit, and delete users."""
+    station_name = serializers.CharField(source='station.name', read_only=True, default=None)
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'login_42',
+            'email',
+            'role',
+            'station',
+            'station_name',
+            'is_active',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'login_42', 'email', 'created_at']
+
+
 class TokenResponseSerializer(serializers.Serializer):
     """Schema-only serializer for the JWT token response (used for docs)."""
     access = serializers.CharField()

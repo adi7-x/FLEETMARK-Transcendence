@@ -2,7 +2,7 @@ import os
 from urllib.parse import urlencode
 
 import requests
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,8 +12,10 @@ from apps.users.models import User
 from apps.users.serializers import (
     OAuth42LoginSerializer,
     TokenResponseSerializer,
+    UserAdminSerializer,
     UserSerializer,
 )
+from apps.users.permissions import IsLogisticsStaff
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 42 OAuth settings (read from environment)
@@ -164,3 +166,24 @@ class ProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class UserListView(generics.ListAPIView):
+    """
+    GET /api/v1/auth/users/ — List all users (logistics staff only).
+    """
+    queryset = User.objects.all()
+    serializer_class = UserAdminSerializer
+    permission_classes = [IsLogisticsStaff]
+
+
+class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET    /api/v1/auth/users/<id>/ — View a user.
+    PATCH  /api/v1/auth/users/<id>/ — Edit role, station, is_active.
+    DELETE /api/v1/auth/users/<id>/ — Delete a user.
+    Logistics staff only.
+    """
+    queryset = User.objects.all()
+    serializer_class = UserAdminSerializer
+    permission_classes = [IsLogisticsStaff]

@@ -1,3 +1,10 @@
 from rest_framework import serializers
 
-# Serializers will be implemented in the next session
+from apps.buses.models import Bus
+
+
+class BusSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Bus
+		fields = ['id', 'name', 'plate', 'seat_capacity', 'created_at']
+		read_only_fields = ['id', 'created_at']

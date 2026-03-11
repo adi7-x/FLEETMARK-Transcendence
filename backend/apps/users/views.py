@@ -1,12 +1,16 @@
+import logging
 import os
 from urllib.parse import urlencode
 
 import requests
+from django.shortcuts import redirect as django_redirect
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
+logger = logging.getLogger(__name__)
 
 from apps.users.models import User
 from apps.users.serializers import (
@@ -31,6 +35,7 @@ INTRA_42_TOKEN_URL = 'https://api.intra.42.fr/oauth/token'
 INTRA_42_USER_URL = 'https://api.intra.42.fr/v2/me'
 
 ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 
 class OAuth42LoginView(APIView):
@@ -86,8 +91,15 @@ class OAuth42CallbackView(APIView):
         }
         token_response = requests.post(INTRA_42_TOKEN_URL, data=token_data, timeout=10)
         if token_response.status_code != 200:
+            logger.error(
+                '42 token exchange failed: status=%s body=%s redirect_uri=%s',
+                token_response.status_code,
+                token_response.text,
+                INTRA_42_REDIRECT_URI,
+            )
             return Response(
-                {'error': 'Failed to obtain access token from 42.'},
+                {'error': 'Failed to obtain access token from 42.',
+                 'detail': token_response.text},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         access_token_42 = token_response.json().get('access_token')
@@ -136,14 +148,19 @@ class OAuth42CallbackView(APIView):
         refresh = RefreshToken.for_user(user)
         user_data = UserSerializer(user).data
 
-        return Response(
-            {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-                'user': user_data,
-            },
-            status=status.HTTP_200_OK,
+        # If the browser hit this endpoint directly (42 redirected here),
+        # redirect to the frontend with tokens in the URL fragment.
+        # The frontend reads them from the hash and stores them.
+        access_tok = str(refresh.access_token)
+        refresh_tok = str(refresh)
+        frontend_callback = (
+            f'{FRONTEND_URL}/auth/callback'
+            f'#access={access_tok}'
+            f'&refresh={refresh_tok}'
+            f'&role={user_data.get("role", "")}'
+            f'&login={user_data.get("login_42", "")}'
         )
+        return django_redirect(frontend_callback)
 
 
 class ProfileView(APIView):

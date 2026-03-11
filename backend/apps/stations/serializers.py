@@ -1,3 +1,10 @@
 from rest_framework import serializers
 
-# Serializers will be implemented in the next session
+from apps.stations.models import Station
+
+
+class StationSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Station
+		fields = ['id', 'name', 'created_at']
+		read_only_fields = ['id', 'created_at']

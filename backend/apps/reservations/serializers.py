@@ -1,3 +1,10 @@
 from rest_framework import serializers
 
-# Serializers will be implemented in the next session
+from apps.reservations.models import Reservation
+
+
+class ReservationSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Reservation
+		fields = ['id', 'trip', 'student', 'created_at']
+		read_only_fields = ['id', 'student', 'created_at']

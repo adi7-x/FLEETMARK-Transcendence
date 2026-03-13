@@ -1,0 +1,525 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FLEETMARK — FINAL MERGE EXECUTION PROMPT
+Read everything first. Then execute step by step.
+Do NOT skip any step. Report after each one.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+════════════════════════════════════════════════════════
+CONTEXT — READ THIS FIRST
+════════════════════════════════════════════════════════
+
+This is a school shuttle reservation platform called Fleetmark
+built for 1337 School, Ben Guerir, Morocco.
+
+Students use it to reserve seats on night shuttles
+that run from 10PM to 6AM.
+
+THE TEAM:
+  Adil Bourji       → Frontend (React + Vite + TypeScript)
+  Mohamed Lahrech   → Backend (Django REST)
+  Abderrahman Chakour → Backend / Auth (42 OAuth)
+  Ayoub El Haouti   → Backend / QA
+  Aamir Tahtah      → DevOps / Docker
+
+THE STACK:
+  Frontend: React 18 + Vite + TypeScript + Tailwind v4
+  Backend:  Django REST Framework
+  Auth:     42 Intra OAuth2 + JWT (SimpleJWT)
+  DB:       PostgreSQL
+  Docker:   docker-compose with 4 services
+
+THE ROLES:
+  STUDENT          → books shuttle seats
+  LOGISTICS_STAFF  → admin, manages buses/routes/trips
+  DRIVER           → drives (coming soon page for now)
+
+API BASE URL: http://localhost:8000/api/v1
+
+KEY FIELD NAMES (do not rename these ever):
+  User:        id, login_42, email, role, station (uuid), station_name, is_active
+  Station:     id, name
+  Bus:         id, name, plate, seat_capacity
+  Route:       id, name, window (peak|consolidated), stations[]
+  Trip:        id, route, bus, driver, departure_datetime, seats, archived_at, status
+  Reservation: id, trip, student, created_at
+  Driver:      id, name, username, status
+
+
+════════════════════════════════════════════════════════
+PHASE 0 — READ THE PROJECT STATE
+════════════════════════════════════════════════════════
+
+Before touching any file, read these:
+
+1. PROGRESS.md           → what was done, what still needs work
+2. frontend/src/App.tsx  → current routes
+3. frontend/src/services/api.ts → what API calls exist
+4. frontend/src/types/api.ts    → current types
+5. frontend/src/context/AuthContext.tsx → auth state
+6. backend/ssbs/urls.py         → all registered routes
+7. backend/ssbs/settings.py     → CORS, INSTALLED_APPS
+8. backend/apps/users/views.py  → auth endpoints
+9. backend/apps/trips/views.py  → trip endpoints
+10. backend/apps/reservations/views.py → reservation endpoints
+11. docker-compose.yml          → service config
+12. .env or .env.example        → environment variables
+
+After reading, tell me:
+  ✅ What is already wired and working
+  🔴 What is broken or missing
+  ⚠️  What exists but uses mock data
+
+Then proceed to Phase 1.
+
+
+════════════════════════════════════════════════════════
+PHASE 1 — LANDING PAGE
+Target: / route works perfectly, "Login with 42" works
+════════════════════════════════════════════════════════
+
+File: frontend/src/pages/Landing.tsx
+
+Step 1.1 — READ the current Landing.tsx
+  Tell me what it renders right now.
+  Is it using mock data? Is it complete?
+
+Step 1.2 — CHECK the Login button
+  Find the "Login with 42" button or CTA.
+  It must call: GET /api/v1/auth/42/login/
+  Which returns: { authorization_url: string }
+  Then: window.location.href = authorization_url
+
+  Open frontend/src/services/api.ts
+  Verify getLoginUrl() exists and calls the right endpoint.
+  If missing → add it.
+
+Step 1.3 — WIRE the button
+  The Login button onClick must:
+    1. Call getLoginUrl()
+    2. Redirect to the returned authorization_url
+    3. Show a loading state while fetching
+    4. Show an error message if it fails
+
+  Update Landing.tsx to do this.
+  Do not change the visual design — only wire the button.
+
+Step 1.4 — VERIFY
+  Run: npm run dev
+  Open: http://localhost:5173
+  Confirm: Landing page loads, no console errors.
+  Confirm: Login button is visible and calls the API.
+
+  ✅ Phase 1 complete when: Landing loads, button is wired.
+
+
+════════════════════════════════════════════════════════
+PHASE 2 — AUTH FLOW (Login → Callback → Redirect)
+Target: Full 42 OAuth works end to end
+════════════════════════════════════════════════════════
+
+File: frontend/src/pages/AuthCallback.tsx
+
+Step 2.1 — READ AuthCallback.tsx
+  Tell me what it does right now.
+
+Step 2.2 — VERIFY the callback logic
+  The page must do exactly this on mount:
+    1. Read ?code= from URL params
+    2. If no code → navigate to /
+    3. Call handleOAuthCallback(code) from services/api
+    4. handleOAuthCallback must POST to /api/v1/auth/42/callback/?code={code}
+    5. Save to localStorage:
+         fleetmark_access  → tokens.access
+         fleetmark_refresh → tokens.refresh
+         fleetmark_user    → JSON.stringify(tokens.user)
+    6. Read tokens.user.role:
+         LOGISTICS_STAFF → navigate to /admin
+         DRIVER          → navigate to /driver
+         STUDENT + no station → navigate to /onboarding
+         STUDENT + has station → navigate to /student
+    7. On error → navigate to /?error=auth_failed
+
+  Fix anything that does not match this exactly.
+
+Step 2.3 — CHECK AuthContext
+  Open frontend/src/context/AuthContext.tsx
+  Verify:
+    - On mount it reads fleetmark_user from localStorage
+    - login(tokens) saves everything to localStorage
+    - logout() clears all fleetmark_* keys + redirects to /
+    - isAuthenticated, isStudent, isStaff, isDriver are exported
+
+  Fix anything missing.
+
+Step 2.4 — CHECK ProtectedRoute
+  Open frontend/src/components/layout/ProtectedRoute.tsx
+  Verify:
+    - If no user → redirect to /
+    - If wrong role → redirect to their home
+    - STUDENT home: /student
+    - LOGISTICS_STAFF home: /admin
+    - DRIVER home: /driver
+
+  Fix anything missing.
+
+Step 2.5 — VERIFY backend callback endpoint
+  Open backend/apps/users/views.py or
+       backend/apps/auth/ (wherever the OAuth callback is)
+  Confirm GET /api/v1/auth/42/callback/?code={code} exists
+  and returns: { access, refresh, user: { id, login_42, email, role, station, station_name } }
+
+  If it returns different field names → tell me.
+  Do NOT change backend field names. Adjust frontend to match.
+
+  ✅ Phase 2 complete when: callback route exists in urls.py,
+     AuthCallback.tsx handles all 4 role redirects correctly.
+
+
+════════════════════════════════════════════════════════
+PHASE 3 — ONBOARDING (First login, pick your station)
+Target: New student picks their home station and saves it
+════════════════════════════════════════════════════════
+
+File: frontend/src/pages/student/Onboarding.tsx
+  OR frontend/src/pages/Onboarding.tsx (whichever exists)
+
+Step 3.1 — READ the onboarding page
+  Tell me what it renders. Is it using mock stations?
+
+Step 3.2 — WIRE stations API
+  On mount call: GET /api/v1/stations/
+  Returns: [{ id, name, created_at }]
+  Display each station as a selectable pill button.
+  User selects ONE station.
+
+  Replace any hardcoded or mock station list
+  with the real API call.
+
+Step 3.3 — WIRE save station
+  On "Save my stop →" click:
+    Call PATCH /api/v1/auth/me/ with body: { station: selectedStationId }
+    On success:
+      Update the user in localStorage (fleetmark_user)
+      Navigate to /student
+    On error: show error message inline
+
+  On "Skip for now" → navigate to /student
+
+Step 3.4 — VERIFY
+  Confirm the station picker shows real data from backend.
+  Confirm saving updates the user's station.
+
+  ✅ Phase 3 complete when: real stations load, save works.
+
+
+════════════════════════════════════════════════════════
+PHASE 4 — STUDENT DASHBOARD
+Target: Student sees tonight's trips and can reserve a seat
+════════════════════════════════════════════════════════
+
+Files:
+  frontend/src/pages/student/Overview.tsx   (or passenger/PassengerOverview.tsx)
+  frontend/src/pages/student/Reserve.tsx    (or passenger/ReserveASeat.tsx)
+  frontend/src/pages/student/History.tsx    (or passenger/MyReservations.tsx)
+  frontend/src/pages/student/Settings.tsx   (or passenger/ProfileSettings.tsx)
+
+Step 4.1 — READ all 4 student pages
+  Tell me which ones use mock data vs real API.
+  List the mock data files they import from src/data/
+
+Step 4.2 — WIRE Overview page
+  On mount:
+    const user = read from AuthContext (or localStorage)
+    If user.station is null → navigate to /onboarding
+
+    Call: GET /api/v1/trips/available/?station_id={user.station}
+    Returns: Trip[] — may return [] outside service hours
+
+    Call: GET /api/v1/reservations/?user_id={user.id}
+    Returns: Reservation[]
+
+  Display:
+    - Hero card: tonight's first available trip
+      departure_datetime formatted as "11:00 PM"
+      seats left = trip.seats - reservations.length for that trip
+    - If no trips → show calm message:
+      "No trips available · Service runs 10PM–6AM"
+    - Two info cards: home station name + rides this month
+
+  Remove ALL imports from src/data/mockData or similar.
+
+Step 4.3 — WIRE Reserve page
+  On mount:
+    Call: GET /api/v1/trips/available/?station_id={user.station}
+    Call: GET /api/v1/reservations/?user_id={user.id}
+
+  For each trip show:
+    - departure_datetime formatted nicely
+    - seats left
+    - Button states:
+        Not reserved → blue "Reserve →"
+        Already reserved → green "✓ Reserved" (disabled)
+        Full → gray "Full" (disabled)
+
+  On "Reserve →" click:
+    Optimistic UI: button → "..."
+    Call POST /api/v1/reservations/
+    Body: { trip: trip.id, user_id: user.id }
+    On success → button → "✓ Reserved"
+    On error "Already reserved." → button → "✓ Reserved"
+    On error "Trip is fully booked." → button → "Full"
+    On other error → show error, restore button
+
+Step 4.4 — WIRE History page
+  Call: GET /api/v1/reservations/history/?user_id={user.id}
+  Display in a table: date, route, station, time, status
+
+Step 4.5 — WIRE Settings page
+  Show current station from user.station_name
+  "Change stop" → show station picker (same as onboarding)
+  On save → PATCH /api/v1/auth/me/ with new station uuid
+  Language switcher → updates i18n + data-lang on html element
+  Sign out → calls logout() from AuthContext
+
+Step 4.6 — VERIFY full student flow
+  Test this flow manually:
+    1. Login as student
+    2. Pick station on onboarding
+    3. See tonight's trips on overview
+    4. Reserve a seat
+    5. See reservation in history
+    6. Cancel it
+    7. Sign out
+
+  ✅ Phase 4 complete when all 6 steps work with real API.
+
+
+════════════════════════════════════════════════════════
+PHASE 5 — ADMIN DASHBOARD
+Target: Staff can see and manage buses, routes, trips, reservations
+════════════════════════════════════════════════════════
+
+Files:
+  frontend/src/pages/admin/Overview.tsx
+  frontend/src/pages/admin/BusManagement.tsx (or Buses.tsx)
+  frontend/src/pages/admin/Routes.tsx
+  frontend/src/pages/admin/Reservations.tsx
+  frontend/src/pages/admin/Drivers.tsx
+
+Step 5.1 — READ all admin pages
+  List which ones use mock data.
+  List which ones are already wired.
+
+Step 5.2 — WIRE Overview
+  Call: GET /api/v1/trips/
+  Show:
+    - Active trips tonight (archived_at is null)
+    - Total seats across active trips
+    - Earliest departure time
+  Call: GET /api/v1/buses/
+  Show: number of buses
+  Call: GET /api/v1/routes/
+  Show: number of routes
+
+  NOTE: There is no "all reservations" endpoint.
+  Do not fake a reservation count.
+  Show only what the API actually returns.
+
+Step 5.3 — WIRE Buses page
+  GET /api/v1/buses/ → list all buses
+  Show: name, plate, seat_capacity for each bus
+  Field names: name · plate · seat_capacity
+  NOT: matricule, capacity (those are wrong names)
+
+Step 5.4 — WIRE Routes page
+  GET /api/v1/routes/ → returns routes with nested stations
+  Show: name, window (peak/consolidated), stations list in order
+  Each station in route.stations[] has: { order, station: { id, name } }
+
+Step 5.5 — WIRE Reservations page
+  NOTE: Backend requires user_id to list reservations.
+  There is no global reservations list endpoint.
+  Show a search box: enter a student's 42 login
+  When searched: call GET /api/v1/reservations/?user_id={id}
+  Show results in a table.
+
+Step 5.6 — WIRE Drivers page
+  GET /api/v1/drivers/ → list all drivers
+  Show: name, username, status (active/inactive)
+  NOTE: password is NEVER shown
+
+Step 5.7 — VERIFY full admin flow
+  Test:
+    1. Login as LOGISTICS_STAFF
+    2. See overview with real numbers
+    3. See buses list with real data
+    4. See routes with real stops
+    5. Search a student's reservations
+    6. See drivers list
+
+  ✅ Phase 5 complete when all 6 steps work with real API.
+
+
+════════════════════════════════════════════════════════
+PHASE 6 — DRIVER PAGE
+Target: Driver sees Coming Soon with correct layout
+════════════════════════════════════════════════════════
+
+File: frontend/src/pages/driver/ComingSoon.tsx
+
+Step 6.1 — READ the driver page
+  Is it complete? Does it look good?
+
+Step 6.2 — VERIFY it is protected
+  In App.tsx confirm /driver route has:
+    <ProtectedRoute role="DRIVER">
+      <DriverComingSoon />
+    </ProtectedRoute>
+
+Step 6.3 — Confirm it shows:
+  - "Driver Portal" title
+  - "Coming Soon" badge
+  - List of upcoming features as chips
+  - SEMPRE PER LA SCUOLA block
+  - Open source contribution note
+
+  ✅ Phase 6 complete when driver page renders correctly.
+
+
+════════════════════════════════════════════════════════
+PHASE 7 — DOCKER + FINAL VERIFICATION
+Target: docker-compose up --build starts everything
+════════════════════════════════════════════════════════
+
+Step 7.1 — READ docker-compose.yml
+  Tell me what services exist.
+  Are all ports correct?
+  Is the database healthcheck configured?
+
+Step 7.2 — VERIFY backend Dockerfile
+  Must: install requirements, run migrate, start server on 0.0.0.0:8000
+
+Step 7.3 — VERIFY frontend Dockerfile
+  Must: npm ci, npm run build, serve with nginx
+
+Step 7.4 — VERIFY nginx.conf
+  Must have:
+    location / → serve index.html (SPA routing)
+    location /api/ → proxy to backend:8000
+
+Step 7.5 — RUN full Docker build
+  docker-compose down -v
+  docker-compose up --build
+
+  Expected:
+    db        → healthy
+    backend   → running on :8000, migrations done
+    frontend  → running on :80
+
+  Open http://localhost → Landing page
+  Open http://localhost:8000/api/v1/ → API root
+
+Step 7.6 — RUN integration tests
+  bash test_integration.sh
+  or
+  python test_system.py
+
+  Tell me which tests pass and which fail.
+  Fix any failures caused by wrong URLs or missing env vars.
+
+  ✅ Phase 7 complete when docker-compose up works
+     and the app is accessible at http://localhost
+
+
+════════════════════════════════════════════════════════
+PHASE 8 — CLEAN UP AND PUSH
+════════════════════════════════════════════════════════
+
+Step 8.1 — REMOVE all mock data imports
+  Search the entire frontend/src/ for:
+    import from '../data/mockData'
+    import from '../data/driverMockData'
+    import from '../data/passengerMockData'
+    import mockData
+    const mockData
+    const dummyData
+    const fakeData
+
+  List every file that still imports mock data.
+  These must all be replaced with real API calls before push.
+
+Step 8.2 — RUN TypeScript check
+  cd frontend && npx tsc --noEmit
+  Fix every error. Zero errors required.
+
+Step 8.3 — RUN final manual test
+  Test this complete flow:
+    1. Open http://localhost:5173
+    2. Click "Login with 42"
+    3. Complete OAuth (or test with a mock token)
+    4. Land on correct dashboard by role
+    5. Student: reserve a seat successfully
+    6. Admin: view buses and routes
+    7. Sign out → land on homepage
+
+Step 8.4 — UPDATE PROGRESS.md
+  Update the "Current State" section with today's progress.
+  Update "Still Needs Work" to reflect what is actually left.
+
+Step 8.5 — PUSH to GitHub
+  git add .
+  git commit -m "feat: complete frontend-backend integration
+
+  - Wire all student pages to live API
+  - Wire all admin pages to live API
+  - Fix AuthCallback OAuth flow
+  - Wire Onboarding to real stations API
+  - Remove all mock data
+  - Docker Compose verified working"
+
+  git push origin HEAD
+
+
+════════════════════════════════════════════════════════
+RULES — NEVER BREAK THESE
+════════════════════════════════════════════════════════
+
+FIELD NAMES — use exactly these, never rename:
+  station        (not home_stop)
+  station_name   (not stop_name)
+  plate          (not matricule)
+  seat_capacity  (not capacity)
+  departure_datetime (not depart_time)
+  login_42       (not username or login)
+  LOGISTICS_STAFF (not ADMIN or STAFF)
+
+API CALLS — always use exact paths:
+  /api/v1/auth/42/login/
+  /api/v1/auth/42/callback/?code=
+  /api/v1/auth/me/
+  /api/v1/stations/
+  /api/v1/buses/
+  /api/v1/routes/
+  /api/v1/drivers/
+  /api/v1/trips/
+  /api/v1/trips/available/?station_id=
+  /api/v1/reservations/?user_id=
+  /api/v1/reservations/history/?user_id=
+
+MOCK DATA — zero tolerance after Phase 4:
+  No imports from src/data/
+  No hardcoded arrays of fake trips or stations
+  No setTimeout faking API calls
+
+DESIGN — do not touch:
+  src/styles/tokens.css
+  Any component visual design that already looks good
+  Dark mode toggle logic
+  Language switcher logic
+
+ONE STEP AT A TIME:
+  Complete each phase fully before starting the next.
+  Report after every step.
+  If something fails, fix it before moving on.
+  Do not leave broken code and move forward.

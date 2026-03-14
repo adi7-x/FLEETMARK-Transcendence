@@ -70,6 +70,9 @@ class OAuth42CallbackView(APIView):
     3. Creates or retrieves the local User record.
     4. Assigns LOGISTICS_STAFF role if login matches ADMIN_42_LOGIN.
     5. Issues a JWT pair (access + refresh) and returns it with the user profile.
+
+    The frontend is responsible for storing the tokens in localStorage and
+    redirecting the user based on their role and station.
     """
     permission_classes = [AllowAny]
 
@@ -98,8 +101,10 @@ class OAuth42CallbackView(APIView):
                 INTRA_42_REDIRECT_URI,
             )
             return Response(
-                {'error': 'Failed to obtain access token from 42.',
-                 'detail': token_response.text},
+                {
+                    'error': 'Failed to obtain access token from 42.',
+                    'detail': token_response.text,
+                },
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         access_token_42 = token_response.json().get('access_token')
@@ -144,23 +149,18 @@ class OAuth42CallbackView(APIView):
             user.is_staff = True
             user.save(update_fields=['role', 'is_staff'])
 
-        # ── Step 4: Issue JWT tokens ─────────────────────────────────────
+        # ── Step 4: Issue JWT tokens and return payload ──────────────────
         refresh = RefreshToken.for_user(user)
         user_data = UserSerializer(user).data
 
-        # If the browser hit this endpoint directly (42 redirected here),
-        # redirect to the frontend with tokens in the URL fragment.
-        # The frontend reads them from the hash and stores them.
-        access_tok = str(refresh.access_token)
-        refresh_tok = str(refresh)
-        frontend_callback = (
-            f'{FRONTEND_URL}/auth/callback'
-            f'#access={access_tok}'
-            f'&refresh={refresh_tok}'
-            f'&role={user_data.get("role", "")}'
-            f'&login={user_data.get("login_42", "")}'
+        return Response(
+            {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': user_data,
+            },
+            status=status.HTTP_200_OK,
         )
-        return django_redirect(frontend_callback)
 
 
 class ProfileView(APIView):

@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
-import { weeklySchedule } from '../../data/mockData';
 import Modal from '../../components/admin/Modal';
 import { useSchedule, to12Hour, type StoppedPeriod } from '../../context/ScheduleContext';
 import { useToast } from '../../context/ToastContext';
@@ -69,7 +68,7 @@ const ScheduleManagement = () => {
     toast('Trip frequency saved! ✅');
   };
 
-  const totalSlots = weeklySchedule.reduce((sum, day) => sum + day.slots.length, 0);
+  const totalSlots = generatedSlots.length;
   const activeSlots = generatedSlots.filter((s) => s.status === 'active');
   const stoppedSlots = generatedSlots.filter((s) => s.status === 'stopped');
 
@@ -466,7 +465,7 @@ const ScheduleManagement = () => {
 
       {/* Calendar grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {weeklySchedule.map((day) => (
+        {[] /* No backend schedule yet; UI kept for future wiring */.map((day) => (
           <div
             key={day.day}
             className={`bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all hover:shadow-lg hover:shadow-primary-100/30 ${

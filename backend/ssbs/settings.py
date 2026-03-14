@@ -16,9 +16,17 @@ from ssbs.vault import get_secret
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = get_secret('django', 'secret_key', os.environ.get('SECRET_KEY'))
-DEBUG = get_secret('django', 'debug', os.environ.get('APP_DEBUG', os.environ.get('DEBUG', 'False'))) == 'True'
+# Prioritize environment variable for DEBUG during dev
+DEBUG_ENV = os.environ.get('APP_DEBUG', os.environ.get('DEBUG', 'False'))
+DEBUG = str(DEBUG_ENV).lower() in ['true', '1', 'yes', 't']
+
 ALLOWED_HOSTS_ENV = get_secret('django', 'allowed_hosts', os.environ.get('ALLOWED_HOSTS', '*'))
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')] if ALLOWED_HOSTS_ENV != '*' else ['*']
+
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'  # required — custom user model
 
@@ -105,8 +113,6 @@ USE_TZ = True
 TIME_ZONE = 'Africa/Casablanca'
 
 USE_I18N = True
-
-STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -118,6 +118,7 @@ services:
     volumes:
       - ./backend:/app
       - vault-approle:/vault/approle:ro
+      - ./logs:/var/log/ssbs
     ports:
       - "8000:8000"
     environment:
@@ -145,6 +146,7 @@ services:
     volumes:
       - ./backend:/app
       - vault-approle:/vault/approle:ro
+      - ./logs:/var/log/ssbs
     environment:
       VAULT_ADDR: "http://vault:8200"
     env_file:
@@ -216,6 +218,7 @@ services:
       - ./elk/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
       - ./elk/certs/logstash:/usr/share/logstash/config/certificates:ro
       - ./elk/certs/elasticsearch:/usr/share/logstash/config/elasticsearch-certs:ro
+      - ./logs:/usr/share/logstash/external-logs:ro
     depends_on:
       - elasticsearch
     networks:

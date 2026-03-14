@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { handleOAuthCallback } from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -9,7 +9,6 @@ export default function AuthCallback() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const { login } = useAuth()
-  const calledRef = useRef(false)
 
   useEffect(() => {
     const handleAuth = async () => {

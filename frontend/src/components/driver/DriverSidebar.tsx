@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { driverNotifications } from '../../data/driverMockData';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
@@ -29,7 +28,7 @@ const DriverSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: Sideb
     { label: t('dashboard.sidebar.overview'), icon: Home, path: '/driver/overview' },
     { label: t('dashboard.sidebar.myRoute'), icon: MapPinned, path: '/driver/route' },
     { label: t('dashboard.sidebar.passengers'), icon: Users, path: '/driver/passengers' },
-    { label: t('dashboard.sidebar.notifications'), icon: Bell, path: '/driver/notifications', badge: driverNotifications.filter((n) => !n.read).length },
+    { label: t('dashboard.sidebar.notifications'), icon: Bell, path: '/driver/notifications', badge: 0 },
     { label: t('dashboard.sidebar.profile'), icon: UserCog, path: '/driver/profile' },
   ];
 

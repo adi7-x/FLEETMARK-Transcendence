@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
-import { weeklySchedule } from '../../data/mockData';
 import Modal from '../../components/admin/Modal';
 import { useSchedule, to12Hour, type StoppedPeriod } from '../../context/ScheduleContext';
 import { useToast } from '../../context/ToastContext';
@@ -69,7 +68,7 @@ const ScheduleManagement = () => {
     toast('Trip frequency saved! ✅');
   };
 
-  const totalSlots = weeklySchedule.reduce((sum, day) => sum + day.slots.length, 0);
+  const totalSlots = generatedSlots.length;
   const activeSlots = generatedSlots.filter((s) => s.status === 'active');
   const stoppedSlots = generatedSlots.filter((s) => s.status === 'stopped');
 
@@ -466,51 +465,7 @@ const ScheduleManagement = () => {
 
       {/* Calendar grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        {weeklySchedule.map((day) => (
-          <div
-            key={day.day}
-            className={`bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all hover:shadow-lg hover:shadow-primary-100/30 ${
-              day.slots.length === 0 ? 'opacity-60' : ''
-            }`}
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary-500" />
-                <span className="text-sm font-bold text-primary-900">{day.day}</span>
-              </div>
-              <span className="text-xs text-slate-400 font-medium">{day.date}</span>
-            </div>
-            <div className="p-3 space-y-2 min-h-[120px]">
-              {day.slots.length === 0 ? (
-                <div className="flex items-center justify-center h-[100px] text-xs text-slate-300 font-medium">
-                  No trips scheduled
-                </div>
-              ) : (
-                day.slots.map((slot) => (
-                  <div
-                    key={slot.id}
-                    className="relative pl-3 py-2.5 pr-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-primary-200 transition-colors group"
-                  >
-                    <div className={`absolute left-0 top-2 bottom-2 w-1 rounded-full ${slot.color}`} />
-                    <div className="ml-2">
-                      <p className="text-xs font-bold text-primary-900">{slot.route}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
-                          <BusIcon className="w-3 h-3" />
-                          {slot.bus}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
-                          <Clock className="w-3 h-3" />
-                          {slot.time}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        ))}
+        {/* No backend-backed weekly grid yet; reserved for future scheduling API */}
       </div>
 
       {/* Route Color Legend */}

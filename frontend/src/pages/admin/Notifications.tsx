@@ -3,19 +3,18 @@ import { useState, useMemo } from 'react';
 import { Send, Info, CheckCircle, AlertTriangle, AlertCircle, Filter, BellOff } from 'lucide-react';
 import { useNotifications, useCreateNotification } from '../../hooks/useApi';
 import Modal from '../../components/admin/Modal';
-import { useLoadingState } from '../../hooks/useLoadingState';
 import { SkeletonList } from '../../components/ui/Skeleton';
 import ErrorState from '../../components/ui/ErrorState';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
 import { SnakeCard } from '../../components/ui/SnakeCard';
 
-const iconMap: Record<Notification['icon'], { Icon: typeof Info; color: string; bg: string }> = {
+const iconMap = {
   info: { Icon: Info, color: 'text-sky-500', bg: 'bg-sky-50' },
   success: { Icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
   warning: { Icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
   alert: { Icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-50' },
-};
+} as const;
 
 type FilterType = 'All' | 'Unread' | 'Sent';
 
@@ -32,11 +31,12 @@ const Notifications = () => {
 
   const filtered = useMemo(() => {
     if (filter === 'All') return notifications;
-    if (filter === 'Unread') return notifications.filter((n) => n.status === 'Unread');
-    return notifications.filter((n) => n.type === 'sent');
+    if (filter === 'Unread') return notifications.filter((n) => !n.is_read);
+    // "Sent" → broadcast (no specific target_role)
+    return notifications.filter((n) => n.target_role === null);
   }, [filter, notifications]);
 
-  const unreadCount = notifications.filter((n) => n.status === 'Unread').length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const validateField = (key: string, value: string): string => {
     switch (key) {
@@ -70,9 +70,16 @@ const Notifications = () => {
 
     try {
       await createNotification.mutateAsync({
-        target: formData.target,
         title: formData.title,
         message: formData.message,
+        target_role:
+          formData.target === 'Students Only'
+            ? 'STUDENT'
+            : formData.target === 'Drivers Only'
+            ? 'DRIVER'
+            : formData.target === 'Admins Only'
+            ? 'LOGISTICS_STAFF'
+            : null,
       });
       toast('Notification sent!');
       setModalOpen(false);
@@ -140,14 +147,20 @@ const Notifications = () => {
           />
         ) : (
           filtered.map((n) => {
-            const { Icon, color, bg } = iconMap[n.icon];
+            const iconKey =
+              n.target_role === 'LOGISTICS_STAFF'
+                ? 'info'
+                : n.target_role === 'DRIVER'
+                ? 'warning'
+                : n.target_role === 'STUDENT'
+                ? 'success'
+                : 'alert';
+            const { Icon, color, bg } = iconMap[iconKey];
             return (
               <div
                 key={n.id}
                 className={`bg-white rounded-2xl border p-4 flex items-start gap-4 transition-all hover:shadow-lg hover:shadow-primary-100/30 ${
-                  n.status === 'Unread'
-                    ? 'border-primary-200 bg-primary-50/30'
-                    : 'border-slate-200'
+                  !n.is_read ? 'border-primary-200 bg-primary-50/30' : 'border-slate-200'
                 }`}
               >
                 <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
@@ -156,16 +169,18 @@ const Notifications = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-primary-900">{n.title}</h3>
-                    {n.status === 'Unread' && (
+                    {!n.is_read && (
                       <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0" />
                     )}
-                    {n.type === 'sent' && (
+                    {n.target_role === null && (
                       <span className="px-2 py-0.5 rounded-md bg-primary-50 text-primary-600 text-[10px] font-bold uppercase tracking-wider">Sent</span>
                     )}
                   </div>
                   <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
                 </div>
-                <span className="text-xs text-slate-400 whitespace-nowrap shrink-0 mt-0.5">{n.time}</span>
+                <span className="text-xs text-slate-400 whitespace-nowrap shrink-0 mt-0.5">
+                  {new Date(n.created_at).toLocaleString()}
+                </span>
               </div>
             );
           })

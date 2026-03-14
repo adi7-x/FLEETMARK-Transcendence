@@ -15,14 +15,21 @@ interface ThemeState {
 const ThemeContext = createContext<ThemeState | null>(null)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
-  const [lang,  setLangS] = useState<Lang>('en')
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'light'
+    const stored = localStorage.getItem(STORAGE_KEYS.THEME) as Theme | null
+    return stored ?? 'light'
+  })
+  const [lang, setLangS] = useState<Lang>(() => {
+    if (typeof window === 'undefined') return 'en'
+    const stored = localStorage.getItem(STORAGE_KEYS.LANG) as Lang | null
+    return stored ?? 'en'
+  })
 
   useEffect(() => {
-    const t = localStorage.getItem(STORAGE_KEYS.THEME) as Theme | null
-    const l = localStorage.getItem(STORAGE_KEYS.LANG)  as Lang  | null
-    if (t) apply(t)
-    if (l) applyLang(l)
+    apply(theme)
+    applyLang(lang)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function apply(t: Theme) {

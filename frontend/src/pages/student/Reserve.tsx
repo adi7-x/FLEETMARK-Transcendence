@@ -127,7 +127,7 @@ const Reserve = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {trips.map((trip) => {
           const resCountForTrip = reservations.filter((r) => r.trip === trip.id).length;
-          const seatsLeft = trip.seats_left;
+          const seatsLeft = trip.seats;
           const isReserved = reservations.some((r) => r.trip === trip.id && r.student === user?.id);
           const isFull = seatsLeft <= 0;
 

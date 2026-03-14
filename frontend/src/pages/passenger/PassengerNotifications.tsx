@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { useState, useMemo } from 'react';
 import { CheckCircle, AlertTriangle, AlertCircle, Clock, Info, Filter, CheckCheck, BellOff } from 'lucide-react';
-import { useNotifications } from '../../hooks/useApi';
-import { useLoadingState } from '../../hooks/useLoadingState';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
+import { getNotifications } from '../../services/api';
 import { SkeletonList } from '../../components/ui/Skeleton';
 import ErrorState from '../../components/ui/ErrorState';
 import EmptyState from '../../components/ui/EmptyState';
@@ -19,16 +20,22 @@ const typeConfig: Record<string, { Icon: typeof Info; color: string; bg: string 
 type NotifFilter = 'All' | 'Unread';
 
 const PassengerNotificationsPage = () => {
-  const { data: notifications = [], isLoading, isError, refetch } = useNotifications();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
+  const { data: notifications = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['notifications', userId],
+    queryFn: () => getNotifications(userId),
+    enabled: !!userId,
+  });
   const [filter, setFilter] = useState<NotifFilter>('All');
-  const [readIds, setReadIds] = useState<Set<number>>(new Set());
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const filtered = useMemo(() => {
     if (filter === 'All') return notifications;
     return notifications.filter((n) => !readIds.has(n.id));
   }, [filter, readIds, notifications]);
 
-  const unreadCount = notifications.filter((n) => !readIds.has(n.id)).length;
+  const unreadCount = notifications.filter((n) => !readIds.has(n.id) && !n.is_read).length;
 
   const markAllRead = () => {
     setReadIds(new Set(notifications.map((n) => n.id)));
@@ -84,9 +91,9 @@ const PassengerNotificationsPage = () => {
       ) : (
         <div className="space-y-3">
           {filtered.map((n) => {
-            const config = typeConfig[n.type] || typeConfig['system'];
+            const config = typeConfig['system'];
             const { Icon, color, bg } = config;
-            const isUnread = !readIds.has(n.id);
+            const isUnread = !readIds.has(n.id) && !n.is_read;
 
             return (
               <div
@@ -110,7 +117,9 @@ const PassengerNotificationsPage = () => {
                   </div>
                   <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
                 </div>
-                <span className="text-xs text-slate-400 whitespace-nowrap shrink-0 mt-0.5">{n.time}</span>
+                <span className="text-xs text-slate-400 whitespace-nowrap shrink-0 mt-0.5">
+                  {new Date(n.created_at).toLocaleString()}
+                </span>
               </div>
             );
           })}

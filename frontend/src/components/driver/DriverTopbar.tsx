@@ -2,7 +2,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Menu, ChevronDown, User, Settings, LogOut } from 'lucide-react';
-import { driverNotifications } from '../../data/driverMockData';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../LanguageSwitcher';
@@ -16,7 +15,7 @@ interface TopbarProps {
 const DriverTopbar = ({ title, onMenuClick }: TopbarProps) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const unreadCount = driverNotifications.filter((n) => !n.read).length;
+  const unreadCount = 0;
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { t } = useTranslation();

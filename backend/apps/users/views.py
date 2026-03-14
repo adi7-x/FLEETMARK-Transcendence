@@ -69,6 +69,9 @@ class OAuth42CallbackView(APIView):
     3. Creates or retrieves the local User record.
     4. Assigns LOGISTICS_STAFF role if login matches ADMIN_42_LOGIN.
     5. Issues a JWT pair (access + refresh) and returns it with the user profile.
+
+    The frontend is responsible for storing the tokens in localStorage and
+    redirecting the user based on their role and station.
     """
     permission_classes = [AllowAny]
 

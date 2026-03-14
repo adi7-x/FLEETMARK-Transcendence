@@ -10,7 +10,7 @@ load_dotenv()  # must be called before any os.environ.get()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-this'
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['*']
 
@@ -156,8 +156,10 @@ SSBS_API_KEY = os.environ.get('SSBS_API_KEY', '')
 # ──────────────────────────────────────────────────────────────────────────────
 # Logging
 # ──────────────────────────────────────────────────────────────────────────────
-LOG_DIR = '/var/log/ssbs'
-os.makedirs(LOG_DIR, exist_ok=True)  # ensure directory exists at startup
+# Use a configurable, writable log directory. In Docker we can point this to
+# /var/log/ssbs via SSBS_LOG_DIR; in local dev it defaults to BASE_DIR / "logs".
+LOG_DIR = os.environ.get('SSBS_LOG_DIR', str(BASE_DIR / 'logs'))
+os.makedirs(LOG_DIR, exist_ok=True)
 
 LOGGING = {
     'version': 1,

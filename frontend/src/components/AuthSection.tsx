@@ -226,48 +226,6 @@ const AuthSection = () => {
                   </p>
                 </div>
 
-                {/* Dev Login Bypass (DEBUG only) */}
-                <div className="mt-5" style={{ borderTop: `1px solid ${S.line}`, paddingTop: 16 }}>
-                  <p className="text-center mb-3" style={{ fontSize: 10, fontWeight: 600, color: '#F59E0B', textTransform: 'uppercase', letterSpacing: '0.1em' }}>⚡ Dev Login (bypass 42 OAuth)</p>
-                  <div className="flex gap-2">
-                    {[
-                      { label: '🎓 Student', payload: { email: 'passenger@test.com' } },
-                      { label: '🛡️ Admin', payload: { email: 'orgadmin@test.com' } },
-                      { label: '👨‍💻 adbourji', payload: { login_42: 'adbourji' } },
-                    ].map((u) => (
-                      <button
-                        key={u.label}
-                        disabled={devLoading !== null}
-                        onClick={async () => {
-                          setDevLoading(u.label);
-                          setLoginError(null);
-                          try {
-                            const tokens = await devLogin(u.payload);
-                            const role = tokens.user.role;
-                            if (role === 'LOGISTICS_STAFF') window.location.href = '/admin';
-                            else if (role === 'STUDENT') window.location.href = tokens.user.station ? '/student' : '/onboarding';
-                            else window.location.href = '/driver';
-                          } catch (err) {
-                            console.error('Dev login error:', err);
-                            setLoginError('Dev login failed. Is the backend running?');
-                            setDevLoading(null);
-                          }
-                        }}
-                        style={{
-                          flex: 1, padding: '10px 12px', borderRadius: 8,
-                          border: `1px solid #F59E0B33`, background: '#F59E0B11',
-                          color: '#F59E0B', fontSize: 12, fontWeight: 600,
-                          cursor: devLoading ? 'not-allowed' : 'pointer',
-                          opacity: devLoading && devLoading !== u.label ? 0.4 : 1,
-                        }}
-                      >
-                        {devLoading === u.label ? '...' : u.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-
               </div>
             </div>
           </motion.div>

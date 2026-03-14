@@ -5,7 +5,6 @@ import HowItWorks  from '../components/HowItWorks'
 import Schedule    from '../components/Schedule'
 import WhoWeAre    from '../components/WhoWeAre'
 import AuthSection from '../components/AuthSection'
-import Subscribe   from '../components/Subscribe'
 import Footer      from '../components/Footer'
 
 export default function Landing() {
@@ -18,7 +17,6 @@ export default function Landing() {
       <Schedule />
       <WhoWeAre />
       <AuthSection />
-      <Subscribe />
       <Footer />
     </>
   )

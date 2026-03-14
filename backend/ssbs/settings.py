@@ -12,8 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS', '*')
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')] if ALLOWED_HOSTS_ENV != '*' else ['*']
+ALLOWED_HOSTS = ['*']
 
 AUTH_USER_MODEL = 'users.User'  # required — custom user model
 
@@ -35,7 +34,6 @@ INSTALLED_APPS = [
     'apps.trips',
     'apps.reservations',
     'apps.reports',
-    'apps.notifications',
 ]
 
 MIDDLEWARE = [
@@ -142,7 +140,7 @@ INTRA_42_CLIENT_ID = os.environ.get('INTRA_42_CLIENT_ID', '')
 INTRA_42_CLIENT_SECRET = os.environ.get('INTRA_42_CLIENT_SECRET', '')
 INTRA_42_REDIRECT_URI = os.environ.get(
     'INTRA_42_REDIRECT_URI',
-    'http://localhost:5173/auth/callback',
+    'http://localhost:8000/api/v1/auth/42/callback/',
 )
 ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
 
@@ -150,3 +148,75 @@ ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
 # Public API Key
 # ──────────────────────────────────────────────────────────────────────────────
 SSBS_API_KEY = os.environ.get('SSBS_API_KEY', '')
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Logging
+# ──────────────────────────────────────────────────────────────────────────────
+LOG_DIR = '/var/log/ssbs'
+os.makedirs(LOG_DIR, exist_ok=True)  # ensure directory exists at startup
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'standard': {
+            'format': '{asctime} [{levelname}] {name}: {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        # Keep printing to stdout so `docker compose logs backend` still works
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        # Write to a rotating file — max 10 MB per file, keep 5 backups
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': f'{LOG_DIR}/backend.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        },
+    },
+
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'WARNING',  # only warnings+ from third-party libs by default
+    },
+
+    'loggers': {
+        # All HTTP requests (GET, POST, errors, 500s)
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Security-related events (bad tokens, permission denied)
+        'django.security': {
+            'handlers': ['file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Our application code (views, management commands)
+        'apps': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Cron command specifically
+        'archive_trips': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

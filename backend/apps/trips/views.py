@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import time, timedelta
 
 from django.db.models import Count, F
 from django.utils.timezone import localtime, now
@@ -10,19 +10,19 @@ from rest_framework.views import APIView
 from apps.routes.models import Route
 from apps.trips.models import Trip
 from apps.trips.serializers import TripSerializer
-from apps.users.permissions import IsLogisticsStaff, IsDriver, IsLogisticsStaffOrReadOnly
+from apps.users.permissions import IsLogisticsStaff
 
 
 class TripListCreateView(generics.ListCreateAPIView):
 	queryset = Trip.objects.select_related('route', 'bus', 'driver')
 	serializer_class = TripSerializer
-	permission_classes = [IsAuthenticated, IsLogisticsStaffOrReadOnly]
+	permission_classes = [IsLogisticsStaff]
 
 
 class TripDetailView(generics.RetrieveUpdateDestroyAPIView):
 	queryset = Trip.objects.select_related('route', 'bus', 'driver')
 	serializer_class = TripSerializer
-	permission_classes = [IsAuthenticated, IsLogisticsStaffOrReadOnly]
+	permission_classes = [IsLogisticsStaff]
 
 
 class AvailableTripListView(APIView):
@@ -35,28 +35,42 @@ class AvailableTripListView(APIView):
 		if not station_id:
 			return Response({'detail': 'station_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-		current_time = localtime(now()).time()
+		now_dt = localtime(now())
+		
+		# 1. Find the earliest future non-archived trip
+		first_trip = Trip.objects.filter(
+			route__route_stations__station_id=station_id,
+			departure_datetime__gte=now_dt,
+			archived_at__isnull=True,
+		).order_by('departure_datetime').first()
 
-		if time(20, 0) <= current_time:
-			allowed_window = 'peak'
-		elif current_time < time(1, 0):
-			return Response([], status=status.HTTP_200_OK)
-		elif time(1, 0) <= current_time < time(6, 0):
-			allowed_window = 'consolidated'
+		if not first_trip:
+			return Response([])
+
+		# 2. Determine the "Logical Shift Start Date"
+		# A "Night Shift" starts at 20:00 and ends at 06:00 the next day.
+		# If the next trip is between 00:00 and 06:00, it belongs to the previous calendar day's shift.
+		t_dt = first_trip.departure_datetime
+		if t_dt.time() < time(6, 0):
+			logical_start_date = t_dt.date() - timedelta(days=1)
 		else:
-			return Response([], status=status.HTTP_200_OK)
+			logical_start_date = t_dt.date()
 
-		matched_routes = Route.objects.filter(
-			window=allowed_window,
-			route_stations__station_id=station_id,
+		# 3. Define the Window: 20:00 on start date to 06:00 the next day
+		start_of_window = now_dt.replace(
+			year=logical_start_date.year, month=logical_start_date.month, day=logical_start_date.day,
+			hour=20, minute=0, second=0, microsecond=0
 		)
+		end_of_window = (start_of_window + timedelta(days=1)).replace(hour=6, minute=0)
 
 		trips = (
 			Trip.objects.filter(
-				route__in=matched_routes,
+				route__route_stations__station_id=station_id,
+				departure_datetime__range=(start_of_window, end_of_window),
+				departure_datetime__gte=now_dt,
 				archived_at__isnull=True,
 			)
-			.select_related('bus')
+			.select_related('route', 'bus')
 			.annotate(reservation_count=Count('reservations'))
 			.filter(reservation_count__lt=F('bus__seat_capacity'))
 			.order_by('departure_datetime')
@@ -64,33 +78,3 @@ class AvailableTripListView(APIView):
 
 		serializer = TripSerializer(trips, many=True)
 		return Response(serializer.data)
-
-
-class TripStartView(APIView):
-	permission_classes = [IsLogisticsStaff | IsDriver]
-
-	def post(self, request, pk):
-		from apps.core.exceptions import LifecycleError
-		try:
-			trip = Trip.objects.get(pk=pk)
-			trip.start()
-			return Response({'status': 'Trip started'})
-		except Trip.DoesNotExist:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		except LifecycleError as e:
-			return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-class TripEndView(APIView):
-	permission_classes = [IsLogisticsStaff | IsDriver]
-
-	def post(self, request, pk):
-		from apps.core.exceptions import LifecycleError
-		try:
-			trip = Trip.objects.get(pk=pk)
-			trip.end()
-			return Response({'status': 'Trip ended'})
-		except Trip.DoesNotExist:
-			return Response(status=status.HTTP_404_NOT_FOUND)
-		except LifecycleError as e:
-			return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

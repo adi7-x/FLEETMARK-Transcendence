@@ -1,15 +1,11 @@
 from rest_framework import serializers
-
 from apps.reservations.models import Reservation
-
+from apps.trips.serializers import TripSerializer
 
 class ReservationSerializer(serializers.ModelSerializer):
-	trip_route = serializers.CharField(source='trip.route.name', read_only=True)
-	trip_bus = serializers.CharField(source='trip.bus.name', read_only=True)
-	trip_time = serializers.DateTimeField(source='trip.departure_datetime', read_only=True)
-	trip_status = serializers.CharField(source='trip.status', read_only=True)
+	trip_details = TripSerializer(source='trip', read_only=True)
 
 	class Meta:
 		model = Reservation
-		fields = ['id', 'trip', 'student', 'created_at', 'trip_route', 'trip_bus', 'trip_time', 'trip_status']
-		read_only_fields = ['id', 'student', 'created_at']
+		fields = ['id', 'trip', 'trip_details', 'student', 'created_at']
+		read_only_fields = ['id', 'student', 'created_at', 'trip_details']

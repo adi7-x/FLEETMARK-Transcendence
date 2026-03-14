@@ -110,8 +110,7 @@ docker-compose.local.yml
 *.db
 *.sqlite
 *.sqlite3
-data/
-postgres-data/
+database/
 
 # =====================================
 # Frontend specific

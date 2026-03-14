@@ -27,10 +27,3 @@ class LifecycleError(DomainError):
 	default_message = 'Invalid lifecycle operation'
 	default_code = 'lifecycle_error'
 	status_code = status.HTTP_400_BAD_REQUEST
-
-
-class FreezeError(DomainError):
-	"""Raised when attempting to modify a frozen structure."""
-	default_message = 'Structure is frozen and cannot be modified'
-	default_code = 'freeze_error'
-	status_code = status.HTTP_409_CONFLICT

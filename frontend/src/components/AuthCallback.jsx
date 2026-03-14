@@ -68,9 +68,34 @@ const AuthCallback = ({ onAuth }) => {
   }, [onAuth]);
 
   return (
-    <div style={{ padding: 20, textAlign: 'center' }}>
-      <h2>🔐 Processing Login...</h2>
-      <p>Please wait while we complete your authentication.</p>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh', 
+      background: '#f8f9fa',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
+      <div style={{ 
+        background: 'white', 
+        padding: '40px', 
+        borderRadius: '16px', 
+        boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
+        textAlign: 'center',
+        maxWidth: '400px',
+        width: '90%'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: '20px', animation: 'spin 2s linear infinite' }}>↻</div>
+        <h2 style={{ margin: '0 0 10px 0', color: '#333' }}>Processing Login...</h2>
+        <p style={{ color: '#666', lineHeight: '1.5' }}>
+          Please wait while we complete your authentication with 42.
+        </p>
+        <style>{`
+          @keyframes spin { 
+            100% { transform: rotate(360deg); } 
+          }
+        `}</style>
+      </div>
     </div>
   );
 };

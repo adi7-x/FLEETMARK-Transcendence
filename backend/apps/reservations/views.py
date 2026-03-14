@@ -14,14 +14,15 @@ class ReservationListCreateView(APIView):
 	permission_classes = [IsAuthenticated]
 
 	def get(self, request):
-		user_id = request.query_params.get('user_id')
-		if not user_id:
-			return Response({'detail': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+		if getattr(request.user, 'role', None) == 'LOGISTICS_STAFF':
+			reservations = Reservation.objects.filter(trip__archived_at__isnull=True)
+		else:
+			# Force filtering by the authenticated user's ID
+			reservations = Reservation.objects.filter(
+				student=request.user,
+				trip__archived_at__isnull=True,
+			)
 
-		reservations = Reservation.objects.filter(
-			student_id=user_id,
-			trip__archived_at__isnull=True,
-		)
 		serializer = ReservationSerializer(reservations, many=True)
 		return Response(serializer.data)
 
@@ -62,12 +63,11 @@ class ReservationDetailView(APIView):
 	permission_classes = [IsAuthenticated]
 
 	def delete(self, request, pk):
-		user_id = request.query_params.get('user_id')
-		if not user_id:
-			return Response({'detail': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
-
 		try:
-			reservation = Reservation.objects.select_related('trip').get(id=pk, student_id=user_id)
+			if getattr(request.user, 'role', None) == 'LOGISTICS_STAFF':
+				reservation = Reservation.objects.select_related('trip').get(id=pk)
+			else:
+				reservation = Reservation.objects.select_related('trip').get(id=pk, student=request.user)
 		except Reservation.DoesNotExist:
 			return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -82,13 +82,14 @@ class ReservationHistoryView(APIView):
 	permission_classes = [IsAuthenticated]
 
 	def get(self, request):
-		user_id = request.query_params.get('user_id')
-		if not user_id:
-			return Response({'detail': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+		if getattr(request.user, 'role', None) == 'LOGISTICS_STAFF':
+			reservations = Reservation.objects.filter(trip__archived_at__isnull=False)
+		else:
+			# Force filtering by the authenticated user's ID
+			reservations = Reservation.objects.filter(
+				student=request.user,
+				trip__archived_at__isnull=False,
+			)
 
-		reservations = Reservation.objects.filter(
-			student_id=user_id,
-			trip__archived_at__isnull=False,
-		)
 		serializer = ReservationSerializer(reservations, many=True)
 		return Response(serializer.data)

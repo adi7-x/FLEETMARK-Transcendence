@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getStoredUser, getReservationHistory } from '../../services/api';
-import Spinner from '../../components/ui/Spinner';
+import { SkeletonList } from '../../components/ui/Skeleton';
 
 const V = {
   ink: 'var(--fm-ink)', mid: 'var(--fm-mid)', dim: 'var(--fm-dim)',
@@ -23,7 +23,7 @@ export default function History() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Spinner />;
+  if (loading) return <SkeletonList items={4} />;
   if (error) return <p style={{ color: 'var(--fm-red)', padding: 40, textAlign: 'center' }}>{error}</p>;
 
   return (

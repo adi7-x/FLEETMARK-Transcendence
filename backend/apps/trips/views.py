@@ -10,19 +10,19 @@ from rest_framework.views import APIView
 from apps.routes.models import Route
 from apps.trips.models import Trip
 from apps.trips.serializers import TripSerializer
-from apps.users.permissions import IsLogisticsStaff
+from apps.users.permissions import IsLogisticsStaff, IsDriver, IsLogisticsStaffOrReadOnly
 
 
 class TripListCreateView(generics.ListCreateAPIView):
 	queryset = Trip.objects.select_related('route', 'bus', 'driver')
 	serializer_class = TripSerializer
-	permission_classes = [IsLogisticsStaff]
+	permission_classes = [IsAuthenticated, IsLogisticsStaffOrReadOnly]
 
 
 class TripDetailView(generics.RetrieveUpdateDestroyAPIView):
 	queryset = Trip.objects.select_related('route', 'bus', 'driver')
 	serializer_class = TripSerializer
-	permission_classes = [IsLogisticsStaff]
+	permission_classes = [IsAuthenticated, IsLogisticsStaffOrReadOnly]
 
 
 class AvailableTripListView(APIView):
@@ -78,3 +78,32 @@ class AvailableTripListView(APIView):
 
 		serializer = TripSerializer(trips, many=True)
 		return Response(serializer.data)
+
+class TripStartView(APIView):
+	permission_classes = [IsLogisticsStaff | IsDriver]
+
+	def post(self, request, pk):
+		from apps.core.exceptions import LifecycleError
+		try:
+			trip = Trip.objects.get(pk=pk)
+			trip.start()
+			return Response({'status': 'Trip started'})
+		except Trip.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		except LifecycleError as e:
+			return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TripEndView(APIView):
+	permission_classes = [IsLogisticsStaff | IsDriver]
+
+	def post(self, request, pk):
+		from apps.core.exceptions import LifecycleError
+		try:
+			trip = Trip.objects.get(pk=pk)
+			trip.end()
+			return Response({'status': 'Trip ended'})
+		except Trip.DoesNotExist:
+			return Response(status=status.HTTP_404_NOT_FOUND)
+		except LifecycleError as e:
+			return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

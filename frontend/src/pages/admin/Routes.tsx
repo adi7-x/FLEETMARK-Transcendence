@@ -1,6 +1,6 @@
 import { useRoutes } from '../../hooks/useApi';
 import type { Route } from '../../types/api';
-import Spinner from '../../components/ui/Spinner';
+import { SkeletonList } from '../../components/ui/Skeleton';
 import Badge from '../../components/ui/Badge';
 
 const V = {
@@ -13,7 +13,7 @@ export default function Routes() {
   const { data = [], isLoading: loading } = useRoutes();
   const routes: Route[] = data as Route[];
 
-  if (loading) return <Spinner />;
+  if (loading) return <SkeletonList items={5} />;
 
   return (
     <div>

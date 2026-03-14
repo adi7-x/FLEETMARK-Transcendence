@@ -24,3 +24,21 @@
 {"id":"726e9806-3266-44da-85fc-65ce76e70ba3","route":"aae4c316-4450-4d3f-bfc7-47ac2637d4b9","bus":"eff722c4-7e18-4607-96c6-1526bdf424bc","driver":"01f6d956-84de-42f1-91f6-d06a2762a60e","departure_datetime":"2026-03-03T21:00:00Z","seats_left":35,"archived_at":null,"created_at":"2026-03-12T02:07:25.255729Z"}
 ==== BODY ====
 {"id":"2d46da49-8422-4e66-a727-b1e7ee2c10ac","route":"394829a0-e158-43aa-bc5d-ab4fcd7bd775","bus":"970aca8d-5731-4292-9128-ac245342ee37","driver":"2cf722b2-1c9d-461a-8c45-bc46ff11d88d","departure_datetime":"2026-03-03T21:00:00Z","seats_left":35,"archived_at":null,"created_at":"2026-03-12T02:08:06.365081Z"}
+==== BODY ====
+
+==== BODY ====
+
+==== BODY ====
+{"detail":"Authorization header must contain two space-delimited values","code":"bad_authorization_header"}
+==== BODY ====
+{"detail":"Authorization header must contain two space-delimited values","code":"bad_authorization_header"}
+==== BODY ====
+{"id":"adfb8b76-dee0-49c6-8b32-9ea7ed254ff4","route":"8ff7f8c7-e258-41fe-88bf-f940dd34ac26","route_name":"Integration Route","bus":"fd1c0d39-2bfb-425c-b865-ec1adfefef0e","bus_name":"Integration Bus","driver":"083b4f55-a196-469c-b5d6-f58e5f1824a8","departure_datetime":"2026-03-03T21:00:00Z","seats_left":35,"archived_at":null,"created_at":"2026-03-14T21:11:55.999612Z"}
+==== BODY ====
+{"route":["This field may not be null."],"bus":["This field may not be null."]}
+==== BODY ====
+{"id":"4556f8aa-86ca-4be3-b7ee-85bb88ea1eea","route":"c1349e35-5de1-4f1f-85ac-b37ada108fbd","route_name":"Integration Route","bus":"cdd2f6e0-a6be-44bc-b496-4b77122a683c","bus_name":"Integration Bus","driver":"5d79a80f-a395-4ed6-aa79-88ac70789da2","departure_datetime":"2026-03-03T21:00:00Z","seats_left":35,"archived_at":null,"created_at":"2026-03-14T21:14:12.408576Z"}
+==== BODY ====
+{"id":"f9c334e2-4074-458d-9ea2-52722f71517c","route":"1c1efe0f-5481-440f-a68d-8a407fbafb7c","route_name":"Integration Route","bus":"7e06e1f0-7668-4cdb-8337-cd9458049d18","bus_name":"Integration Bus","driver":"656475ef-2f98-4bcb-a514-42fbec14cf35","departure_datetime":"2026-03-03T21:00:00Z","seats_left":35,"archived_at":null,"created_at":"2026-03-14T21:24:16.174816Z"}
+==== BODY ====
+{"id":"5d0b680a-ddf4-4d3d-88c1-446fa1f0aaf9","route":"0c3983de-56db-4961-ab89-cebdd4cd507d","route_name":"Integration Route","bus":"87efc90c-ef2f-48e7-a2a3-78230604fba0","bus_name":"Integration Bus","driver":"641ed0bb-cf8d-46e0-8723-14bf074ef179","departure_datetime":"2026-03-03T21:00:00Z","seats_left":35,"archived_at":null,"created_at":"2026-03-14T21:29:38.148652Z"}

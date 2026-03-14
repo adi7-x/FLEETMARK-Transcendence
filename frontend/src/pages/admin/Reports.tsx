@@ -3,14 +3,22 @@ import { Download, TrendingUp, MapPin, Clock, Users } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';
 import { useReports } from '../../hooks/useApi';
 import { SnakeCard } from '../../components/ui/SnakeCard';
-import Spinner from '../../components/ui/Spinner';
+import { SkeletonCardGrid, SkeletonChart } from '../../components/ui/Skeleton';
 
 const Reports = () => {
   const [dateRange, setDateRange] = useState({ from: '2025-02-01', to: '2025-02-28' });
   const { data: reportData, isLoading } = useReports();
 
   if (isLoading || !reportData) {
-    return <Spinner />;
+    return (
+      <div className="space-y-6">
+        <SkeletonCardGrid count={4} cols="grid-cols-2 lg:grid-cols-4" />
+        <div className="grid lg:grid-cols-2 gap-6">
+          <SkeletonChart />
+          <SkeletonChart />
+        </div>
+      </div>
+    );
   }
 
   const { ridesPerRoute, weeklyRidership, reportStats } = reportData;

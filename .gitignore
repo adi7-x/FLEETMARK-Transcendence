@@ -57,3 +57,6 @@ database/db_data/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Logs
+logs/

@@ -9,7 +9,7 @@ class DriverSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Driver
-		fields = ['id', 'name', 'username', 'password', 'status', 'created_at']
+		fields = ['id', 'name', 'username', 'password', 'status', 'default_bus', 'default_routes', 'created_at']
 		read_only_fields = ['id', 'created_at']
 
 	def validate(self, attrs):

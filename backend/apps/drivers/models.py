@@ -14,6 +14,8 @@ class Driver(models.Model):
 	username = models.CharField(max_length=100, unique=True)
 	password = models.CharField(max_length=255)
 	status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+	default_bus = models.ForeignKey('buses.Bus', on_delete=models.SET_NULL, null=True, blank=True)
+	default_routes = models.ManyToManyField('routes.Route', blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:

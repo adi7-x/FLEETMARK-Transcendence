@@ -1,12 +1,16 @@
+import logging
 import os
 from urllib.parse import urlencode
 
 import requests
+from django.shortcuts import redirect as django_redirect
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
+logger = logging.getLogger(__name__)
 
 from apps.users.models import User
 from apps.users.serializers import (
@@ -18,19 +22,19 @@ from apps.users.serializers import (
 from apps.users.permissions import IsLogisticsStaff
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 42 OAuth settings (read from environment)
+# 42 OAuth settings (using django.conf.settings for Vault compatibility)
 # ──────────────────────────────────────────────────────────────────────────────
-INTRA_42_CLIENT_ID = os.environ.get('INTRA_42_CLIENT_ID', '')
-INTRA_42_CLIENT_SECRET = os.environ.get('INTRA_42_CLIENT_SECRET', '')
-INTRA_42_REDIRECT_URI = os.environ.get(
-    'INTRA_42_REDIRECT_URI',
-    'http://localhost:5173/auth/callback',
-)
+from django.conf import settings
+
+INTRA_42_CLIENT_ID = getattr(settings, 'INTRA_42_CLIENT_ID', '')
+INTRA_42_CLIENT_SECRET = getattr(settings, 'INTRA_42_CLIENT_SECRET', '')
+INTRA_42_REDIRECT_URI = getattr(settings, 'INTRA_42_REDIRECT_URI', 'http://localhost:8000/api/v1/auth/42/callback/')
 INTRA_42_AUTHORIZE_URL = 'https://api.intra.42.fr/oauth/authorize'
 INTRA_42_TOKEN_URL = 'https://api.intra.42.fr/oauth/token'
 INTRA_42_USER_URL = 'https://api.intra.42.fr/v2/me'
 
-ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
+ADMIN_42_LOGIN = getattr(settings, 'ADMIN_42_LOGIN', '')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 
 class OAuth42LoginView(APIView):
@@ -86,8 +90,15 @@ class OAuth42CallbackView(APIView):
         }
         token_response = requests.post(INTRA_42_TOKEN_URL, data=token_data, timeout=10)
         if token_response.status_code != 200:
+            logger.error(
+                '42 token exchange failed: status=%s body=%s redirect_uri=%s',
+                token_response.status_code,
+                token_response.text,
+                INTRA_42_REDIRECT_URI,
+            )
             return Response(
-                {'error': 'Failed to obtain access token from 42.'},
+                {'error': 'Failed to obtain access token from 42.',
+                 'detail': token_response.text},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         access_token_42 = token_response.json().get('access_token')
@@ -136,65 +147,19 @@ class OAuth42CallbackView(APIView):
         refresh = RefreshToken.for_user(user)
         user_data = UserSerializer(user).data
 
-        return Response(
-            {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-                'user': user_data,
-            },
-            status=status.HTTP_200_OK,
+        # If the browser hit this endpoint directly (42 redirected here),
+        # redirect to the frontend with tokens in the URL fragment.
+        # The frontend reads them from the hash and stores them.
+        access_tok = str(refresh.access_token)
+        refresh_tok = str(refresh)
+        frontend_callback = (
+            f'{FRONTEND_URL}/auth/callback'
+            f'#access={access_tok}'
+            f'&refresh={refresh_tok}'
+            f'&role={user_data.get("role", "")}'
+            f'&login={user_data.get("login_42", "")}'
         )
-
-
-class DevLoginView(APIView):
-    """
-    POST /api/v1/auth/dev-login/
-    Body: { "email": "passenger@test.com" }
-
-    DEV ONLY — bypasses 42 OAuth and issues JWT tokens for the given user.
-    Only works when DEBUG=True.
-    """
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        from django.conf import settings
-        if not settings.DEBUG:
-            return Response(
-                {'error': 'Dev login is disabled in production.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        email = request.data.get('email')
-        login_42 = request.data.get('login_42')
-
-        if not email and not login_42:
-            return Response(
-                {'error': 'Provide email or login_42.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            if login_42:
-                user = User.objects.get(login_42=login_42)
-            else:
-                user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response(
-                {'error': 'User not found.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        refresh = RefreshToken.for_user(user)
-        user_data = UserSerializer(user).data
-
-        return Response(
-            {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-                'user': user_data,
-            },
-            status=status.HTTP_200_OK,
-        )
+        return django_redirect(frontend_callback)
 
 
 class ProfileView(APIView):

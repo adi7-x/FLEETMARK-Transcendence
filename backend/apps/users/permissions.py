@@ -49,8 +49,6 @@ class IsLogisticsStaffOrReadOnly(BasePermission):
     """Staff can do anything; others can only read (GET, HEAD, OPTIONS)."""
 
     def has_permission(self, request, view):
-        import sys
-        print(f"DEBUG IsLogisticsStaffOrReadOnly method={request.method} user={request.user.role if getattr(request.user, 'role', None) else 'None'}", file=sys.stderr)
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
         return (

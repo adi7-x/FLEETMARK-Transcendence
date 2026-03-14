@@ -1,11 +1,11 @@
 from django.apps import apps
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.routes.models import Route
 from apps.routes.serializers import RouteSerializer
-from apps.users.permissions import IsLogisticsStaffOrReadOnly
-from rest_framework.permissions import IsAuthenticated
+from apps.users.permissions import IsLogisticsStaff
 
 
 class BaseRouteQuerysetMixin:
@@ -15,12 +15,20 @@ class BaseRouteQuerysetMixin:
 
 class RouteListCreateView(BaseRouteQuerysetMixin, generics.ListCreateAPIView):
 	serializer_class = RouteSerializer
-	permission_classes = [IsAuthenticated, IsLogisticsStaffOrReadOnly]
+
+	def get_permissions(self):
+		if self.request.method == 'GET':
+			return [IsAuthenticated()]
+		return [IsLogisticsStaff()]
 
 
 class RouteDetailView(BaseRouteQuerysetMixin, generics.RetrieveUpdateDestroyAPIView):
 	serializer_class = RouteSerializer
-	permission_classes = [IsAuthenticated, IsLogisticsStaffOrReadOnly]
+
+	def get_permissions(self):
+		if self.request.method == 'GET':
+			return [IsAuthenticated()]
+		return [IsLogisticsStaff()]
 
 	def delete(self, request, *args, **kwargs):
 		instance = self.get_object()

@@ -7,12 +7,17 @@ from dotenv import load_dotenv
 
 load_dotenv()  # must be called before any os.environ.get()
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Vault Integration — secrets from HashiCorp Vault (fallback to env vars)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+from ssbs.vault import get_secret
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS_ENV = os.environ.get('ALLOWED_HOSTS', '*')
+SECRET_KEY = get_secret('django', 'secret_key', os.environ.get('SECRET_KEY'))
+DEBUG = get_secret('django', 'debug', os.environ.get('APP_DEBUG', os.environ.get('DEBUG', 'False'))) == 'True'
+ALLOWED_HOSTS_ENV = get_secret('django', 'allowed_hosts', os.environ.get('ALLOWED_HOSTS', '*'))
 ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')] if ALLOWED_HOSTS_ENV != '*' else ['*']
 
 AUTH_USER_MODEL = 'users.User'  # required — custom user model
@@ -35,7 +40,6 @@ INSTALLED_APPS = [
     'apps.trips',
     'apps.reservations',
     'apps.reports',
-    'apps.notifications',
 ]
 
 MIDDLEWARE = [
@@ -72,11 +76,11 @@ WSGI_APPLICATION = 'ssbs.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST', 'db'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
+        'NAME': get_secret('database', 'name', os.environ.get('POSTGRES_DB')),
+        'USER': get_secret('database', 'user', os.environ.get('POSTGRES_USER')),
+        'PASSWORD': get_secret('database', 'password', os.environ.get('POSTGRES_PASSWORD')),
+        'HOST': get_secret('database', 'host', os.environ.get('DB_HOST', 'db')),
+        'PORT': get_secret('database', 'port', os.environ.get('DB_PORT', '5432')),
     }
 }
 
@@ -106,9 +110,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all during dev
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
 ]
 
 REST_FRAMEWORK = {
@@ -136,17 +143,105 @@ SIMPLE_JWT = {
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 42 Intra OAuth
+# 42 Intra OAuth — credentials from Vault
 # ──────────────────────────────────────────────────────────────────────────────
-INTRA_42_CLIENT_ID = os.environ.get('INTRA_42_CLIENT_ID', '')
-INTRA_42_CLIENT_SECRET = os.environ.get('INTRA_42_CLIENT_SECRET', '')
-INTRA_42_REDIRECT_URI = os.environ.get(
-    'INTRA_42_REDIRECT_URI',
-    'http://localhost:5173/auth/callback',
+INTRA_42_CLIENT_ID = get_secret('oauth42', 'client_id', os.environ.get('INTRA_42_CLIENT_ID', ''))
+INTRA_42_CLIENT_SECRET = get_secret('oauth42', 'client_secret', os.environ.get('INTRA_42_CLIENT_SECRET', ''))
+INTRA_42_REDIRECT_URI = get_secret(
+    'oauth42', 'redirect_uri',
+    os.environ.get('INTRA_42_REDIRECT_URI', 'http://localhost:5173/auth/callback'),
 )
-ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
+ADMIN_42_LOGIN = get_secret('oauth42', 'admin_login', os.environ.get('ADMIN_42_LOGIN', ''))
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Security hardening (behind WAF/reverse proxy)
+# ──────────────────────────────────────────────────────────────────────────────
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public API Key
 # ──────────────────────────────────────────────────────────────────────────────
-SSBS_API_KEY = os.environ.get('SSBS_API_KEY', '')
+SSBS_API_KEY = get_secret('api', 'key', os.environ.get('SSBS_API_KEY', ''))
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Logging
+# ──────────────────────────────────────────────────────────────────────────────
+LOG_DIR = '/var/log/ssbs'
+os.makedirs(LOG_DIR, exist_ok=True)  # ensure directory exists at startup
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'standard': {
+            'format': '{asctime} [{levelname}] {name}: {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        # Keep printing to stdout so `docker compose logs backend` still works
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        # Write to a rotating file — max 10 MB per file, keep 5 backups
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': f'{LOG_DIR}/backend.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        },
+        # Async Logstash TCP handler for ELK Stack
+        'logstash': {
+            'level': 'INFO',
+            'class': 'logstash_async.handler.AsynchronousLogstashHandler',
+            'host': 'logstash',
+            'port': 5000,
+            'database_path': f'{LOG_DIR}/logstash.db',
+            'transport': 'logstash_async.transport.TcpTransport'
+        },
+    },
+
+    'root': {
+        'handlers': ['console', 'file', 'logstash'],
+        'level': 'WARNING',  # only warnings+ from third-party libs by default
+    },
+
+    'loggers': {
+        # All HTTP requests (GET, POST, errors, 500s)
+        'django.request': {
+            'handlers': ['console', 'file', 'logstash'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Security-related events (bad tokens, permission denied)
+        'django.security': {
+            'handlers': ['file', 'logstash'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Our application code (views, management commands)
+        'apps': {
+            'handlers': ['console', 'file', 'logstash'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Cron command specifically
+        'archive_trips': {
+            'handlers': ['console', 'file', 'logstash'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

@@ -1,49 +1,43 @@
-from django.db.models import Count
-from rest_framework.views import APIView
+from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
+from apps.reports.models import IncidentReport
+from apps.reports.serializers import ReportSerializer
 
-from apps.trips.models import Trip
-from apps.reservations.models import Reservation
-from apps.routes.models import Route
-from apps.users.permissions import IsLogisticsStaff
+STAFF_ROLE = 'LOGISTICS_STAFF'
 
-class ReportOverviewView(APIView):
-	permission_classes = [IsLogisticsStaff]
+class IncidentReportViewSet(viewsets.ModelViewSet):
+	queryset = IncidentReport.objects.all()
+	serializer_class = ReportSerializer
+	permission_classes = [permissions.IsAuthenticated]
 
-	def get(self, request):
-		total_rides = Reservation.objects.count()
+	def get_queryset(self):
+		user = self.request.user
+		if user.role.upper() == STAFF_ROLE:
+			return IncidentReport.objects.all()
+		return IncidentReport.objects.filter(reporter=user)
 
-		rides_per_route_qs = (
-			Route.objects.annotate(rides=Count('trip__reservations'))
-			.values('name', 'rides')
-			.order_by('-rides')
-		)
-		formatted_rides_per_route = [
-			{'route': r['name'], 'rides': r['rides']} for r in rides_per_route_qs
-		]
+	def perform_create(self, serializer):
+		serializer.save(reporter=self.request.user)
 
-		weekly_ridership = [
-			{"week": "Week 1", "riders": 850},
-			{"week": "Week 2", "riders": 1100},
-			{"week": "Week 3", "riders": 950},
-			{"week": "Week 4", "riders": max(total_rides, 1300)},
-		]
+	def _check_staff(self, request):
+		if request.user.role.upper() != STAFF_ROLE:
+			from rest_framework.response import Response as Resp
+			from rest_framework import status as st
+			return Resp(
+				{"detail": "Only staff can update report status."}, 
+				status=st.HTTP_403_FORBIDDEN
+			)
+		return None
 
-		most_used_route = formatted_rides_per_route[0]['route'] if formatted_rides_per_route else "None"
-		
-		trips = Trip.objects.select_related('bus')
-		total_seats = sum(t.bus.seat_capacity for t in trips)
-		avg_occupancy = round((total_rides / total_seats * 100)) if total_seats > 0 else 0
+	def update(self, request, *args, **kwargs):
+		denied = self._check_staff(request)
+		if denied:
+			return denied
+		kwargs['partial'] = True  # always allow partial to avoid requiring all fields
+		return super().update(request, *args, **kwargs)
 
-		report_stats = {
-			'totalRides': total_rides,
-			'averageOccupancy': avg_occupancy,
-			'mostUsedRoute': most_used_route,
-			'peakHours': '08:00 AM - 10:00 AM'
-		}
-
-		return Response({
-			'ridesPerRoute': formatted_rides_per_route,
-			'weeklyRidership': weekly_ridership,
-			'reportStats': report_stats,
-		})
+	def partial_update(self, request, *args, **kwargs):
+		denied = self._check_staff(request)
+		if denied:
+			return denied
+		return super().partial_update(request, *args, **kwargs)

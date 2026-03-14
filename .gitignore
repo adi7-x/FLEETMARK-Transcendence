@@ -112,6 +112,7 @@ docker-compose.local.yml
 *.sqlite3
 data/
 postgres-data/
+database/
 
 # =====================================
 # Frontend specific

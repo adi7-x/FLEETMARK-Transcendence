@@ -39,6 +39,7 @@ services:
     entrypoint: ["/entrypoint.sh"]
     volumes:
       - ./backend:/app
+      - ./logs:/var/log/ssbs
     ports:
       - "8000:8000"
     env_file:

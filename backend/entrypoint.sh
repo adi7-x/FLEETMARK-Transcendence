@@ -35,6 +35,9 @@ echo "✅ Database is up."
 echo "📦 Applying migrations..."
 python manage.py migrate --noinput
 
-# 4. START SERVER
+# 4. ENSURE LOG DIRECTORY EXISTS (volume may be empty on first start)
+mkdir -p /var/log/ssbs
+
+# 5. START SERVER
 echo "🚀 Starting Django Server..."
 exec python manage.py runserver 0.0.0.0:8000

@@ -148,3 +148,75 @@ ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
 # Public API Key
 # ──────────────────────────────────────────────────────────────────────────────
 SSBS_API_KEY = os.environ.get('SSBS_API_KEY', '')
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Logging
+# ──────────────────────────────────────────────────────────────────────────────
+LOG_DIR = '/var/log/ssbs'
+os.makedirs(LOG_DIR, exist_ok=True)  # ensure directory exists at startup
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'standard': {
+            'format': '{asctime} [{levelname}] {name}: {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '[{levelname}] {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        # Keep printing to stdout so `docker compose logs backend` still works
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        # Write to a rotating file — max 10 MB per file, keep 5 backups
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': f'{LOG_DIR}/backend.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        },
+    },
+
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'WARNING',  # only warnings+ from third-party libs by default
+    },
+
+    'loggers': {
+        # All HTTP requests (GET, POST, errors, 500s)
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Security-related events (bad tokens, permission denied)
+        'django.security': {
+            'handlers': ['file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # Our application code (views, management commands)
+        'apps': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Cron command specifically
+        'archive_trips': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

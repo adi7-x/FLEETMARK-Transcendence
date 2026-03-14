@@ -13,69 +13,74 @@ export interface User {
 }
 
 export interface Station {
-  id:         string
-  name:       string
+  id: string
+  name: string
   created_at: string
 }
 
 export interface Bus {
-  id:            string
-  name:          string
-  plate:         string
+  id: string
+  name: string
+  plate: string
   seat_capacity: number
-  created_at:    string
+  created_at: string
 }
 
 export type RouteWindow = 'peak' | 'consolidated'
 
 export interface RouteStation {
-  order:   number
+  order: number
   station: Station
 }
 
 export interface Route {
-  id:         string
-  name:       string
-  window:     RouteWindow
+  id: string
+  name: string
+  window: RouteWindow
   created_at: string
-  stations:   RouteStation[]
+  stations: RouteStation[]
 }
 
 export interface Driver {
-  id:         string
-  name:       string
-  username:   string
-  status:     'active' | 'inactive'
+  id: string
+  name: string
+  username: string
+  status: 'active' | 'inactive'
   created_at: string
 }
 
 export interface Trip {
-  id:                 string
-  route:              string
-  bus:                string
-  driver:             string
+  id: string
+  route: string
+  bus: string
+  driver: string
   departure_datetime: string
-  seats_left:         number
-  status:             'CREATED' | 'STARTED' | 'ENDED'
-  archived_at:        string | null
-  created_at:         string
+  seats: number
+  archived_at: string | null
+  status: string
+  created_at: string
 }
 
 export interface Reservation {
-  id:          string
-  trip:        string
-  student:     string
-  created_at:  string
-  trip_route?: string
-  trip_bus?:   string
-  trip_time?:  string
-  trip_status?:string
+  id: string
+  trip: string
+  student: string
+  created_at: string
+}
+
+export interface Notification {
+  id: string
+  title: string
+  message: string
+  target_role: string | null
+  created_at: string
+  is_read: boolean
 }
 
 export interface AuthTokens {
-  access:  string
+  access: string
   refresh: string
-  user:    User
+  user: User
 }
 
 export interface ApiError {

@@ -13,15 +13,15 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 ## Build all containers
-build:
+build: ssl-gen
 	docker compose build
 
 ## Start all services
-up:
+up: ssl-gen
 	docker compose up -d
 
 ## Start all services with build
-up-build:
+up-build: ssl-gen
 	docker compose up -d --build
 
 ## Stop all services

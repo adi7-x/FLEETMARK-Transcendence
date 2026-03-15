@@ -43,7 +43,11 @@ const Overview = () => {
 
   useEffect(() => {
     if (!user) { navigate('/'); return; }
-    if (!user.station) { navigate('/onboarding'); return; }
+
+    if (!user.station) {
+      setLoading(false);
+      return;
+    }
 
     Promise.all([
       getAvailableTrips(user.station),
@@ -86,6 +90,34 @@ const Overview = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {!user?.station && (
+        <div style={{
+          border: `1px solid ${V.line}`, borderRadius: 14,
+          padding: '24px 28px', background: V.white,
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: V.ink }}>
+            Choose your stop when you're ready
+          </div>
+          <div style={{ fontSize: 13, color: V.mid, marginTop: 6 }}>
+            You can keep browsing, but reservations stay disabled until you pick a boarding stop.
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Link to="/student/settings" style={{
+              display: 'inline-block',
+              padding: '8px 16px',
+              borderRadius: 8,
+              background: V.blue,
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}>
+              Set my stop
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Hero card */}
       {nextTrip ? (
         <div style={{
@@ -101,7 +133,7 @@ const Overview = () => {
           <div style={{ position: 'relative', zIndex: 1 }}>
             {/* Eyebrow */}
             <div style={{ fontSize: 13, fontWeight: 500, opacity: 0.8, marginBottom: 8 }}>
-              {t('dashboard.passenger.tonight', 'Tonight')} · {user?.station_name ?? ''}
+              {t('dashboard.passenger.tonight', 'Tonight')} · {user?.station_name ?? t('dashboard.passenger.notSet', 'Not set')}
             </div>
 
             {/* Big time */}

@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
 from django.test import TestCase
@@ -29,6 +30,17 @@ class OAuth42CallbackViewTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
+    def assert_callback_redirect(self, response, expected_role, expected_login):
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn('/auth/callback#', response.url)
+
+        parsed = urlparse(response.url)
+        fragment = parse_qs(parsed.fragment)
+        self.assertEqual(fragment['role'][0], expected_role)
+        self.assertEqual(fragment['login'][0], expected_login)
+        self.assertIn('access', fragment)
+        self.assertIn('refresh', fragment)
+
     def test_missing_code_returns_400(self):
         response = self.client.get('/api/v1/auth/42/callback/')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -54,16 +66,12 @@ class OAuth42CallbackViewTest(TestCase):
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'valid-code'})
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
-        self.assertIn('user', response.data)
-        self.assertEqual(response.data['user']['login_42'], 'testuser42')
-        self.assertEqual(response.data['user']['email'], 'test@student.42.fr')
-        self.assertEqual(response.data['user']['role'], 'STUDENT')
+        self.assert_callback_redirect(response, 'STUDENT', 'testuser42')
 
         # Verify user was created in DB
-        self.assertTrue(User.objects.filter(login_42='testuser42').exists())
+        user = User.objects.get(login_42='testuser42')
+        self.assertEqual(user.email, 'test@student.42.fr')
+        self.assertEqual(user.role, 'STUDENT')
 
     @patch('apps.users.views.requests.get')
     @patch('apps.users.views.requests.post')
@@ -90,7 +98,7 @@ class OAuth42CallbackViewTest(TestCase):
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'valid-code'})
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assert_callback_redirect(response, 'STUDENT', 'existinguser')
         self.assertEqual(User.objects.filter(login_42='existinguser').count(), 1)
 
     @patch('apps.users.views.ADMIN_42_LOGIN', 'admin42')
@@ -112,17 +120,18 @@ class OAuth42CallbackViewTest(TestCase):
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'valid-code'})
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['user']['role'], 'LOGISTICS_STAFF')
+        self.assert_callback_redirect(response, 'LOGISTICS_STAFF', 'admin42')
 
     @patch('apps.users.views.requests.post')
     def test_failed_token_exchange_returns_502(self, mock_post):
         mock_response = MagicMock()
         mock_response.status_code = 401
+        mock_response.text = 'invalid_grant'
         mock_post.return_value = mock_response
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'bad-code'})
         self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.assertEqual(response.data['error'], 'Failed to obtain access token from 42.')
 
 
 class TokenRefreshViewTest(TestCase):

@@ -37,6 +37,24 @@ ADMIN_42_LOGIN = getattr(settings, 'ADMIN_42_LOGIN', '')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 
+def build_frontend_callback_url(request, access_token, refresh_token, user_data):
+    forwarded_proto = request.headers.get('X-Forwarded-Proto')
+    forwarded_host = request.headers.get('X-Forwarded-Host') or request.get_host()
+
+    if forwarded_proto and forwarded_host:
+        base_url = f'{forwarded_proto}://{forwarded_host}'
+    else:
+        base_url = FRONTEND_URL.rstrip('/')
+
+    return (
+        f'{base_url}/auth/callback'
+        f'#access={access_token}'
+        f'&refresh={refresh_token}'
+        f'&role={user_data.get("role", "")}'
+        f'&login={user_data.get("login_42", "")}'
+    )
+
+
 class OAuth42LoginView(APIView):
     """
     GET /api/v1/auth/42/login/
@@ -155,12 +173,11 @@ class OAuth42CallbackView(APIView):
         # The frontend reads them from the hash and stores them.
         access_tok = str(refresh.access_token)
         refresh_tok = str(refresh)
-        frontend_callback = (
-            f'{FRONTEND_URL}/auth/callback'
-            f'#access={access_tok}'
-            f'&refresh={refresh_tok}'
-            f'&role={user_data.get("role", "")}'
-            f'&login={user_data.get("login_42", "")}'
+        frontend_callback = build_frontend_callback_url(
+            request,
+            access_tok,
+            refresh_tok,
+            user_data,
         )
         return django_redirect(frontend_callback)
 

@@ -64,7 +64,12 @@ class TripAPITests(APITestCase):
 	@patch('apps.trips.views.now')
 	def test_available_trips_returns_results_in_peak_window(self, mock_now, mock_localtime):
 		self.client.force_authenticate(user=self.student_user)
-		trip = self._create_trip()
+		trip = Trip.objects.create(
+			route=self.route_peak,
+			bus=self.bus,
+			driver=self.driver,
+			departure_datetime='2026-01-01T23:00:00Z',
+		)
 		fake_time = datetime(2026, 1, 1, 22, 0, tzinfo=dt_timezone.utc)
 		mock_now.return_value = fake_time
 		mock_localtime.side_effect = lambda value: fake_time
@@ -77,9 +82,9 @@ class TripAPITests(APITestCase):
 
 	@patch('apps.trips.views.localtime')
 	@patch('apps.trips.views.now')
-	def test_available_trips_returns_empty_outside_windows(self, mock_now, mock_localtime):
+	def test_available_trips_returns_next_night_window_outside_active_hours(self, mock_now, mock_localtime):
 		self.client.force_authenticate(user=self.student_user)
-		self._create_trip()
+		trip = self._create_trip()
 		fake_time = datetime(2026, 1, 1, 10, 0, tzinfo=dt_timezone.utc)
 		mock_now.return_value = fake_time
 		mock_localtime.side_effect = lambda value: fake_time
@@ -87,7 +92,8 @@ class TripAPITests(APITestCase):
 		response = self.client.get(self.available_url, {'station_id': str(self.station.id)})
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
-		self.assertEqual(response.data, [])
+		self.assertEqual(len(response.data), 1)
+		self.assertEqual(response.data[0]['id'], str(trip.id))
 
 	def test_available_trips_requires_station_id(self):
 		self.client.force_authenticate(user=self.student_user)

@@ -30,6 +30,11 @@ class ReservationAPITests(APITestCase):
 			login_42='student2',
 			role='STUDENT'
 		)
+		self.staff_user = User.objects.create_user(
+			email='staff@example.com',
+			login_42='staff1',
+			role='LOGISTICS_STAFF'
+		)
 		self.client.force_authenticate(user=self.user)
 
 	def _create_trip(self, archived=False):
@@ -43,14 +48,15 @@ class ReservationAPITests(APITestCase):
 
 	def test_create_reservation_success(self):
 		trip = self._create_trip()
-		payload = {'trip': str(trip.id), 'user_id': str(self.user.id)}
+		payload = {'trip': str(trip.id)}
 		response = self.client.post(self.list_url, payload, format='json')
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 		self.assertTrue(Reservation.objects.filter(id=response.data['id']).exists())
+		self.assertEqual(str(response.data['student']), str(self.user.id))
 
 	def test_create_reservation_duplicate_returns_400(self):
 		trip = self._create_trip()
-		payload = {'trip': str(trip.id), 'user_id': str(self.user.id)}
+		payload = {'trip': str(trip.id)}
 		self.client.post(self.list_url, payload, format='json')
 		response = self.client.post(self.list_url, payload, format='json')
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -64,14 +70,38 @@ class ReservationAPITests(APITestCase):
 			driver=self.driver,
 			departure_datetime='2026-01-01T22:00:00Z',
 		)
-		self.client.post(self.list_url, {'trip': str(trip.id), 'user_id': str(self.user.id)}, format='json')
-		response = self.client.post(self.list_url, {'trip': str(trip.id), 'user_id': str(self.other_user.id)}, format='json')
+		self.client.post(self.list_url, {'trip': str(trip.id)}, format='json')
+		self.client.force_authenticate(user=self.other_user)
+		response = self.client.post(self.list_url, {'trip': str(trip.id)}, format='json')
 		self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)  # CapacityError returns 409
 
 	def test_create_reservation_archived_trip_returns_400(self):
 		trip = self._create_trip(archived=True)
-		response = self.client.post(self.list_url, {'trip': str(trip.id), 'user_id': str(self.user.id)}, format='json')
+		response = self.client.post(self.list_url, {'trip': str(trip.id)}, format='json')
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)  # LifecycleError returns 400
+
+	def test_create_reservation_ignores_user_id_and_uses_authenticated_student(self):
+		trip = self._create_trip()
+		response = self.client.post(
+			self.list_url,
+			{'trip': str(trip.id), 'user_id': str(self.other_user.id)},
+			format='json',
+		)
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		self.assertEqual(str(response.data['student']), str(self.user.id))
+		self.assertTrue(Reservation.objects.filter(trip=trip, student=self.user).exists())
+		self.assertFalse(Reservation.objects.filter(trip=trip, student=self.other_user).exists())
+
+	def test_staff_cannot_create_reservation(self):
+		trip = self._create_trip()
+		self.client.force_authenticate(user=self.staff_user)
+		response = self.client.post(
+			self.list_url,
+			{'trip': str(trip.id), 'user_id': str(self.user.id)},
+			format='json',
+		)
+		self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+		self.assertFalse(Reservation.objects.filter(trip=trip).exists())
 
 	def test_list_active_reservations_filters_archived(self):
 		active_trip = self._create_trip()
@@ -110,5 +140,6 @@ class ReservationAPITests(APITestCase):
 		trip = self._create_trip()
 		reservation = Reservation.objects.create(trip=trip, student=self.user)
 		url = reverse('reservation-detail', args=[reservation.id])
-		response = self.client.delete(url + f'?user_id={self.other_user.id}')
+		self.client.force_authenticate(user=self.other_user)
+		response = self.client.delete(url)
 		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

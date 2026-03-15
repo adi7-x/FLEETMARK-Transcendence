@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   getStoredUser, getAvailableTrips, getReservations, createReservation,
@@ -54,7 +54,8 @@ const Reserve = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!user || !user.station) { navigate('/onboarding'); return; }
+    if (!user) { navigate('/'); return; }
+    if (!user.station) { setLoading(false); return; }
     fetchData().finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -95,6 +96,37 @@ const Reserve = () => {
   }
 
   if (trips.length === 0) {
+    if (!user?.station) {
+      return (
+        <div style={{
+          border: `1px solid ${V.line}`, borderRadius: 14,
+          padding: '40px 28px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>📍</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: V.ink }}>
+            Pick a stop before reserving
+          </div>
+          <div style={{ fontSize: 13, color: V.mid, marginTop: 4 }}>
+            Seat reservations need a boarding stop so we can show the right trips.
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <Link to="/student/settings" style={{
+              display: 'inline-block',
+              padding: '10px 18px',
+              borderRadius: 8,
+              background: V.blue,
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}>
+              Set my stop
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div style={{
         border: `1px solid ${V.line}`, borderRadius: 14,

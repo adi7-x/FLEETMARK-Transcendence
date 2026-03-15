@@ -118,6 +118,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all during dev
 CORS_ALLOWED_ORIGINS = [
+    'https://localhost:8443',
+    'https://127.0.0.1:8443',
     'http://localhost:5173',
     'http://localhost:3000',
     'http://127.0.0.1:5173',
@@ -157,7 +159,7 @@ INTRA_42_CLIENT_ID = get_secret('oauth42', 'client_id', os.environ.get('INTRA_42
 INTRA_42_CLIENT_SECRET = get_secret('oauth42', 'client_secret', os.environ.get('INTRA_42_CLIENT_SECRET', ''))
 INTRA_42_REDIRECT_URI = get_secret(
     'oauth42', 'redirect_uri',
-    os.environ.get('INTRA_42_REDIRECT_URI', 'http://localhost:5173/auth/callback'),
+    os.environ.get('INTRA_42_REDIRECT_URI', 'http://localhost:8000/api/v1/auth/42/callback/'),
 )
 ADMIN_42_LOGIN = get_secret('oauth42', 'admin_login', os.environ.get('ADMIN_42_LOGIN', ''))
 

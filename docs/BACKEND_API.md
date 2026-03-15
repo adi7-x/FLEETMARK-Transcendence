@@ -4,11 +4,12 @@
 
 ## BASE URL
 
-| Environment | URL |
-|-------------|-----|
-| Local (Docker) | `http://localhost:8000/api/v1` |
-| Frontend proxy | `http://localhost:8000/api` (via `VITE_API_URL`) |
-| Production | Not configured yet |
+| Environment                       | URL                             |
+| --------------------------------- | ------------------------------- |
+| Local (backend direct)            | `http://localhost:8000/api/v1`  |
+| Local (WAF / frontend entrypoint) | `https://localhost:8443/api/v1` |
+| Frontend same-origin API          | `/api/v1`                       |
+| Production                        | Not configured yet              |
 
 ---
 
@@ -27,20 +28,20 @@ Authorization: Bearer <access_token>
 1. `GET /api/v1/auth/42/login/` → returns an `authorization_url`
 2. Redirect user's browser to that URL
 3. 42 redirects back to `GET /api/v1/auth/42/callback/?code=<code>`
-4. Backend returns `{ access, refresh, user }`
-5. Use `access` as Bearer token on all authenticated requests
+4. Backend redirects the browser to the frontend `/auth/callback` route with JWTs in the URL fragment
+5. Frontend stores those tokens and uses `access` as Bearer token on authenticated requests
 6. When `access` expires → `POST /api/v1/auth/token/refresh/` with `{ refresh }` → get new `access`
 
 ### Token lifetimes
 
-| Token | Lifetime |
-|-------|----------|
-| Access | 60 minutes |
-| Refresh | 7 days |
+| Token   | Lifetime   |
+| ------- | ---------- |
+| Access  | 60 minutes |
+| Refresh | 7 days     |
 
 ### Default permission
 
-Settings define `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`, but **every view currently overrides this with `AllowAny`** except `/auth/me/` (which requires authentication).
+Settings define `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`. Public access is limited to OAuth login/callback and token refresh; resource endpoints require authentication and many mutations require `LOGISTICS_STAFF`.
 
 ---
 
@@ -70,37 +71,26 @@ Settings define `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`, but **every vi
 
 #### GET /api/v1/auth/42/callback/?code={code}
 
-**What:** Exchanges 42 auth code for JWT tokens + user profile.
+**What:** Exchanges the 42 auth code, issues JWT tokens, and redirects the browser to the frontend callback route.
 **Who:** Anyone (browser redirect)
 **Auth:** No
 
-**Response 200**
+**Response 302**
 
-```json
-{
-  "access": "string (JWT)",
-  "refresh": "string (JWT)",
-  "user": {
-    "id": "uuid",
-    "login_42": "string",
-    "email": "string",
-    "role": "STUDENT | LOGISTICS_STAFF",
-    "station": "uuid | null",
-    "station_name": "string | null",
-    "is_active": true,
-    "created_at": "datetime"
-  }
-}
+Redirect location shape:
+
+```text
+/auth/callback#access=<jwt>&refresh=<jwt>&role=<role>&login=<login_42>
 ```
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"error": "Missing authorization code."}` | No `code` query param |
-| 502 | `{"error": "Failed to obtain access token from 42."}` | 42 token exchange failed |
-| 502 | `{"error": "Failed to fetch user profile from 42."}` | 42 profile API failed |
-| 502 | `{"error": "Incomplete profile data from 42."}` | Profile missing `login` or `email` |
+| Status | Message                                               | Trigger                            |
+| ------ | ----------------------------------------------------- | ---------------------------------- |
+| 400    | `{"error": "Missing authorization code."}`            | No `code` query param              |
+| 502    | `{"error": "Failed to obtain access token from 42."}` | 42 token exchange failed           |
+| 502    | `{"error": "Failed to fetch user profile from 42."}`  | 42 profile API failed              |
+| 502    | `{"error": "Incomplete profile data from 42."}`       | Profile missing `login` or `email` |
 
 ---
 
@@ -128,9 +118,9 @@ Settings define `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`, but **every vi
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 401 | `{"detail": "Token is invalid or expired", "code": "token_not_valid"}` | Bad or expired refresh token |
+| Status | Message                                                                | Trigger                      |
+| ------ | ---------------------------------------------------------------------- | ---------------------------- |
+| 401    | `{"detail": "Token is invalid or expired", "code": "token_not_valid"}` | Bad or expired refresh token |
 
 ---
 
@@ -157,10 +147,10 @@ Settings define `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`, but **every vi
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 401 | `{"detail": "Authentication credentials were not provided."}` | No token |
-| 401 | `{"detail": "Given token not valid for any token type"}` | Expired/invalid token |
+| Status | Message                                                       | Trigger               |
+| ------ | ------------------------------------------------------------- | --------------------- |
+| 401    | `{"detail": "Authentication credentials were not provided."}` | No token              |
+| 401    | `{"detail": "Given token not valid for any token type"}`      | Expired/invalid token |
 
 ---
 
@@ -195,10 +185,10 @@ Settings define `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`, but **every vi
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"station": ["Invalid pk ... - object does not exist."]}` | Station UUID not found |
-| 401 | `{"detail": "Authentication credentials were not provided."}` | No token |
+| Status | Message                                                       | Trigger                |
+| ------ | ------------------------------------------------------------- | ---------------------- |
+| 400    | `{"station": ["Invalid pk ... - object does not exist."]}`    | Station UUID not found |
+| 401    | `{"detail": "Authentication credentials were not provided."}` | No token               |
 
 **Read-only fields:** `id`, `login_42`, `email`, `role`, `is_active`, `created_at`
 
@@ -211,8 +201,8 @@ Settings define `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`, but **every vi
 #### GET /api/v1/stations/
 
 **What:** List all stations.
-**Who:** Anyone
-**Auth:** No (AllowAny)
+**Who:** Any authenticated user
+**Auth:** Yes
 
 **Response 200**
 
@@ -233,8 +223,8 @@ Ordered by `name` (ascending alphabetical).
 #### POST /api/v1/stations/
 
 **What:** Create a new station.
-**Who:** Anyone (AllowAny — no role check)
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request**
 
@@ -256,34 +246,34 @@ Ordered by `name` (ascending alphabetical).
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"name": ["station with this name already exists."]}` | Duplicate name |
-| 400 | `{"name": ["This field is required."]}` | Missing name |
+| Status | Message                                                | Trigger        |
+| ------ | ------------------------------------------------------ | -------------- |
+| 400    | `{"name": ["station with this name already exists."]}` | Duplicate name |
+| 400    | `{"name": ["This field is required."]}`                | Missing name   |
 
 ---
 
 #### GET /api/v1/stations/{id}/
 
 **What:** Retrieve a single station.
-**Who:** Anyone
-**Auth:** No
+**Who:** Any authenticated user
+**Auth:** Yes
 
 **Response 200** — Same as list item shape.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 404 | `{"detail": "Not found."}` | UUID does not exist |
+| Status | Message                    | Trigger             |
+| ------ | -------------------------- | ------------------- |
+| 404    | `{"detail": "Not found."}` | UUID does not exist |
 
 ---
 
 #### PUT /api/v1/stations/{id}/
 
 **What:** Full update of a station.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request**
 
@@ -297,18 +287,18 @@ Ordered by `name` (ascending alphabetical).
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"name": ["station with this name already exists."]}` | Duplicate name |
-| 404 | `{"detail": "Not found."}` | UUID not found |
+| Status | Message                                                | Trigger        |
+| ------ | ------------------------------------------------------ | -------------- |
+| 400    | `{"name": ["station with this name already exists."]}` | Duplicate name |
+| 404    | `{"detail": "Not found."}`                             | UUID not found |
 
 ---
 
 #### PATCH /api/v1/stations/{id}/
 
 **What:** Partial update of a station.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** (partial)
 
@@ -325,17 +315,17 @@ Ordered by `name` (ascending alphabetical).
 #### DELETE /api/v1/stations/{id}/
 
 **What:** Delete a station (if not used by a route).
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 204** — No content.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "Station is referenced by one or more routes."}` | Station is in a RouteStation |
-| 404 | `{"detail": "Not found."}` | UUID not found |
+| Status | Message                                                      | Trigger                      |
+| ------ | ------------------------------------------------------------ | ---------------------------- |
+| 400    | `{"detail": "Station is referenced by one or more routes."}` | Station is in a RouteStation |
+| 404    | `{"detail": "Not found."}`                                   | UUID not found               |
 
 ---
 
@@ -346,8 +336,8 @@ Ordered by `name` (ascending alphabetical).
 #### GET /api/v1/buses/
 
 **What:** List all buses.
-**Who:** Anyone
-**Auth:** No
+**Who:** Any authenticated user
+**Auth:** Yes
 
 **Response 200**
 
@@ -370,8 +360,8 @@ Ordered by `name`.
 #### POST /api/v1/buses/
 
 **What:** Create a bus.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request**
 
@@ -397,32 +387,32 @@ Ordered by `name`.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"plate": ["bus with this plate already exists."]}` | Duplicate plate |
-| 400 | `{"seat_capacity": ["This field is required."]}` | Missing field |
+| Status | Message                                              | Trigger         |
+| ------ | ---------------------------------------------------- | --------------- |
+| 400    | `{"plate": ["bus with this plate already exists."]}` | Duplicate plate |
+| 400    | `{"seat_capacity": ["This field is required."]}`     | Missing field   |
 
 ---
 
 #### GET /api/v1/buses/{id}/
 
 **What:** Retrieve one bus.
-**Who:** Anyone
-**Auth:** No
+**Who:** Any authenticated user
+**Auth:** Yes
 
 **Response 200** — Same shape as list item.
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                    | Trigger   |
+| ------ | -------------------------- | --------- |
+| 404    | `{"detail": "Not found."}` | Not found |
 
 ---
 
 #### PUT /api/v1/buses/{id}/
 
 **What:** Full update.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** — Same as POST.
 **Response 200** — Updated bus.
@@ -432,8 +422,8 @@ Ordered by `name`.
 #### PATCH /api/v1/buses/{id}/
 
 **What:** Partial update.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** (partial)
 
@@ -450,17 +440,17 @@ Ordered by `name`.
 #### DELETE /api/v1/buses/{id}/
 
 **What:** Delete a bus (if no trip references it).
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 204** — No content.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "Bus is referenced by one or more trips."}` | Bus assigned to a trip |
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                                                 | Trigger                |
+| ------ | ------------------------------------------------------- | ---------------------- |
+| 400    | `{"detail": "Bus is referenced by one or more trips."}` | Bus assigned to a trip |
+| 404    | `{"detail": "Not found."}`                              | Not found              |
 
 ---
 
@@ -471,8 +461,8 @@ Ordered by `name`.
 #### GET /api/v1/routes/
 
 **What:** List all routes with nested ordered stations.
-**Who:** Anyone
-**Auth:** No
+**Who:** Any authenticated user
+**Auth:** Yes
 
 **Response 200**
 
@@ -504,8 +494,8 @@ Ordered by `name`.
 #### POST /api/v1/routes/
 
 **What:** Create a route with ordered stations.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request**
 
@@ -524,34 +514,34 @@ Ordered by `name`.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"station_ids": "A route must have at least one station."}` | Missing or empty station_ids |
-| 400 | `{"non_field_errors": ["One or more stations do not exist or are duplicated."]}` | Bad UUIDs or duplicates in array |
-| 400 | `{"name": ["route with this name already exists."]}` | Duplicate name |
-| 400 | `{"window": ["\"x\" is not a valid choice."]}` | Invalid window value |
+| Status | Message                                                                          | Trigger                          |
+| ------ | -------------------------------------------------------------------------------- | -------------------------------- |
+| 400    | `{"station_ids": "A route must have at least one station."}`                     | Missing or empty station_ids     |
+| 400    | `{"non_field_errors": ["One or more stations do not exist or are duplicated."]}` | Bad UUIDs or duplicates in array |
+| 400    | `{"name": ["route with this name already exists."]}`                             | Duplicate name                   |
+| 400    | `{"window": ["\"x\" is not a valid choice."]}`                                   | Invalid window value             |
 
 ---
 
 #### GET /api/v1/routes/{id}/
 
 **What:** Retrieve one route with nested stations.
-**Who:** Anyone
-**Auth:** No
+**Who:** Any authenticated user
+**Auth:** Yes
 
 **Response 200** — Same shape as list item.
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                    | Trigger   |
+| ------ | -------------------------- | --------- |
+| 404    | `{"detail": "Not found."}` | Not found |
 
 ---
 
 #### PUT /api/v1/routes/{id}/
 
 **What:** Full update. Providing `station_ids` replaces all existing route stations.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** — Same as POST.
 **Response 200** — Updated route with stations.
@@ -561,8 +551,8 @@ Ordered by `name`.
 #### PATCH /api/v1/routes/{id}/
 
 **What:** Partial update. If `station_ids` included, replaces stations. If omitted, stations untouched.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** (any subset)
 
@@ -574,26 +564,26 @@ Ordered by `name`.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"station_ids": "A route must have at least one station."}` | Empty station_ids array |
+| Status | Message                                                      | Trigger                 |
+| ------ | ------------------------------------------------------------ | ----------------------- |
+| 400    | `{"station_ids": "A route must have at least one station."}` | Empty station_ids array |
 
 ---
 
 #### DELETE /api/v1/routes/{id}/
 
 **What:** Delete a route (if no trip references it).
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 204** — No content.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "Route is referenced by one or more trips."}` | Route has trips |
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                                                   | Trigger         |
+| ------ | --------------------------------------------------------- | --------------- |
+| 400    | `{"detail": "Route is referenced by one or more trips."}` | Route has trips |
+| 404    | `{"detail": "Not found."}`                                | Not found       |
 
 ---
 
@@ -604,8 +594,8 @@ Ordered by `name`.
 #### GET /api/v1/drivers/
 
 **What:** List all drivers.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 200**
 
@@ -630,8 +620,8 @@ Ordered by `name`.
 #### POST /api/v1/drivers/
 
 **What:** Create a driver.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request**
 
@@ -648,10 +638,10 @@ Ordered by `name`.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"password": "Password is required."}` | Missing password |
-| 400 | `{"username": ["driver with this username already exists."]}` | Duplicate username |
+| Status | Message                                                       | Trigger            |
+| ------ | ------------------------------------------------------------- | ------------------ |
+| 400    | `{"password": "Password is required."}`                       | Missing password   |
+| 400    | `{"username": ["driver with this username already exists."]}` | Duplicate username |
 
 **Notes:** `password` is hashed with Django's `make_password` before storage.
 
@@ -660,22 +650,22 @@ Ordered by `name`.
 #### GET /api/v1/drivers/{id}/
 
 **What:** Retrieve one driver.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 200** — Same as list item (no password).
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                    | Trigger   |
+| ------ | -------------------------- | --------- |
+| 404    | `{"detail": "Not found."}` | Not found |
 
 ---
 
 #### PUT /api/v1/drivers/{id}/
 
 **What:** Full update. Password re-hashed if provided.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request**
 
@@ -695,8 +685,8 @@ Ordered by `name`.
 #### PATCH /api/v1/drivers/{id}/
 
 **What:** Partial update. Send `password` to change it.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** (any subset)
 
@@ -713,8 +703,8 @@ Ordered by `name`.
 #### DELETE /api/v1/drivers/{id}/
 
 **What:** Delete driver OR soft-delete (set inactive) if assigned to trips.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **If no trips reference this driver:**
 - **Response 204** — Permanently deleted.
@@ -723,10 +713,10 @@ Ordered by `name`.
 - **Response 400** — `{"detail": "Driver is assigned to trips and has been set to inactive."}`
 - Driver's `status` is changed to `"inactive"` (not deleted).
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "Driver is assigned to trips and has been set to inactive."}` | Has trips |
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                                                                   | Trigger   |
+| ------ | ------------------------------------------------------------------------- | --------- |
+| 400    | `{"detail": "Driver is assigned to trips and has been set to inactive."}` | Has trips |
+| 404    | `{"detail": "Not found."}`                                                | Not found |
 
 ---
 
@@ -737,8 +727,8 @@ Ordered by `name`.
 #### GET /api/v1/trips/
 
 **What:** List all trips (staff view).
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 200**
 
@@ -750,7 +740,7 @@ Ordered by `name`.
     "bus": "uuid (FK)",
     "driver": "uuid (FK)",
     "departure_datetime": "datetime",
-    "seats": "integer",
+    "seats_left": "integer",
     "archived_at": "datetime | null",
     "created_at": "datetime"
   }
@@ -764,8 +754,8 @@ Ordered by `departure_datetime`.
 #### POST /api/v1/trips/
 
 **What:** Create a trip.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request**
 
@@ -774,8 +764,7 @@ Ordered by `departure_datetime`.
   "route": "uuid",
   "bus": "uuid",
   "driver": "uuid",
-  "departure_datetime": "datetime",
-  "seats": "integer (positive)"
+  "departure_datetime": "datetime"
 }
 ```
 
@@ -783,34 +772,33 @@ Ordered by `departure_datetime`.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"seats": "seats cannot exceed bus seat capacity of {N}."}` | `seats` > bus `seat_capacity` |
-| 400 | `{"route": ["Invalid pk ... - object does not exist."]}` | Bad route UUID |
-| 400 | `{"bus": ["Invalid pk ... - object does not exist."]}` | Bad bus UUID |
-| 400 | `{"driver": ["Invalid pk ... - object does not exist."]}` | Bad driver UUID |
+| Status | Message                                                   | Trigger         |
+| ------ | --------------------------------------------------------- | --------------- |
+| 400    | `{"route": ["Invalid pk ... - object does not exist."]}`  | Bad route UUID  |
+| 400    | `{"bus": ["Invalid pk ... - object does not exist."]}`    | Bad bus UUID    |
+| 400    | `{"driver": ["Invalid pk ... - object does not exist."]}` | Bad driver UUID |
 
 ---
 
 #### GET /api/v1/trips/{id}/
 
 **What:** Retrieve one trip.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 200** — Trip object.
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                    | Trigger   |
+| ------ | -------------------------- | --------- |
+| 404    | `{"detail": "Not found."}` | Not found |
 
 ---
 
 #### PUT /api/v1/trips/{id}/
 
 **What:** Full update.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** — Same as POST.
 **Response 200** — Updated trip.
@@ -820,60 +808,61 @@ Ordered by `departure_datetime`.
 #### PATCH /api/v1/trips/{id}/
 
 **What:** Partial update.
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Request** (any subset)
 
 ```json
 {
-  "seats": 45
+  "departure_datetime": "2026-01-01T23:00:00Z"
 }
 ```
 
-**Response 200** — Updated trip. Seat validation still applies.
+**Response 200** — Updated trip.
 
 ---
 
 #### DELETE /api/v1/trips/{id}/
 
 **What:** Delete a trip (cascades to all its reservations).
-**Who:** Anyone
-**Auth:** No
+**Who:** Logistics staff only
+**Auth:** Yes
 
 **Response 204** — No content.
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 404 | `{"detail": "Not found."}` | Not found |
+| Status | Message                    | Trigger   |
+| ------ | -------------------------- | --------- |
+| 404    | `{"detail": "Not found."}` | Not found |
 
 ---
 
 #### GET /api/v1/trips/available/?station_id={uuid}
 
-**What:** Browse trips available to a student at their station. Respects time windows.
-**Who:** Students
-**Auth:** No
+**What:** Browse trips available to an authenticated user for a station. Returns the next relevant night-service window for that station.
+**Who:** Any authenticated user
+**Auth:** Yes
 
 **Query Parameters**
 
-| Param | Type | Required |
-|-------|------|----------|
-| `station_id` | uuid | **Yes** |
+| Param        | Type | Required |
+| ------------ | ---- | -------- |
+| `station_id` | uuid | **Yes**  |
 
-**Time window logic (server local time — `Africa/Casablanca`):**
+**Availability logic (server local time — `Africa/Casablanca`):**
 
-| Local Time | Behavior |
-|------------|----------|
-| 20:00 – 23:59 | Returns trips on `window = "peak"` routes passing through `station_id` |
-| 00:00 – 00:59 | Returns `[]` (transition period) |
-| 01:00 – 05:59 | Returns trips on `window = "consolidated"` routes passing through `station_id` |
-| 06:00 – 19:59 | Returns `[]` (outside service hours) |
+- Finds the earliest future, non-archived trip for the given station.
+- Builds the logical night-service window around that trip.
+- Returns trips in that window that:
+  - include the requested station
+  - are not archived
+  - depart in the future
+  - are not full
 
 **Filters applied:**
 1. `archived_at IS NULL` (active only)
 2. Route includes `station_id` in its RouteStation list
-3. `reservation_count < seats` (not full)
+3. `reservation_count < bus.seat_capacity` (not full)
 4. Ordered by `departure_datetime` ascending
 
 **Response 200**
@@ -886,7 +875,7 @@ Ordered by `departure_datetime`.
     "bus": "uuid",
     "driver": "uuid",
     "departure_datetime": "datetime",
-    "seats": "integer",
+    "seats_left": "integer",
     "archived_at": null,
     "created_at": "datetime"
   }
@@ -897,9 +886,9 @@ Empty `[]` = no trips available (not an error).
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "station_id is required."}` | Missing query param |
+| Status | Message                                 | Trigger             |
+| ------ | --------------------------------------- | ------------------- |
+| 400    | `{"detail": "station_id is required."}` | Missing query param |
 
 ---
 
@@ -907,17 +896,11 @@ Empty `[]` = no trips available (not an error).
 
 ---
 
-#### GET /api/v1/reservations/?user_id={uuid}
+#### GET /api/v1/reservations/
 
-**What:** List active reservations for a student (trip not archived).
-**Who:** Students
-**Auth:** No
-
-**Query Parameters**
-
-| Param | Type | Required |
-|-------|------|----------|
-| `user_id` | uuid | **Yes** |
+**What:** List active reservations.
+**Who:** Authenticated users
+**Auth:** Yes
 
 **Response 200**
 
@@ -934,28 +917,28 @@ Empty `[]` = no trips available (not an error).
 
 Ordered by `created_at` descending. Filters: `trip.archived_at IS NULL`.
 
-**Errors**
+**Behavior**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "user_id is required."}` | Missing query param |
+- `LOGISTICS_STAFF` sees all active reservations.
+- Non-staff users see only their own active reservations.
 
 ---
 
 #### POST /api/v1/reservations/
 
-**What:** Reserve a seat on a trip.
-**Who:** Students
-**Auth:** No
+**What:** Reserve a seat on a trip for the authenticated student.
+**Who:** Students only
+**Auth:** Yes
 
 **Request**
 
 ```json
 {
-  "trip": "uuid",
-  "user_id": "uuid"
+  "trip": "uuid"
 }
 ```
+
+`user_id` from the client is ignored if sent.
 
 **Response 201**
 
@@ -972,65 +955,63 @@ Ordered by `created_at` descending. Filters: `trip.archived_at IS NULL`.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "trip and user_id are required."}` | Missing fields |
-| 400 | `{"detail": "Trip is no longer available."}` | Trip is archived |
-| 400 | `{"detail": "Trip is fully booked."}` | Reservations ≥ seats |
-| 400 | `{"detail": "Already reserved."}` | Student already booked this trip |
-| 404 | `{"detail": "Trip not found."}` | Trip UUID doesn't exist |
+| Status | Message                                                     | Trigger                          |
+| ------ | ----------------------------------------------------------- | -------------------------------- |
+| 400    | `{"detail": "trip is required."}`                           | Missing trip                     |
+| 400    | `{"detail": "Trip is no longer available."}`                | Trip is archived                 |
+| 403    | `{"detail": "Logistics staff cannot create reservations."}` | Staff caller                     |
+| 403    | `{"detail": "Only students can create reservations."}`      | Non-student caller               |
+| 409    | `{"error": "No seats available", "code": "capacity_error"}` | Trip is full                     |
+| 400    | `{"detail": "Already reserved."}`                           | Student already booked this trip |
+| 404    | `{"detail": "Trip not found."}`                             | Trip UUID doesn't exist          |
 
 ---
 
-#### GET /api/v1/reservations/history/?user_id={uuid}
+#### GET /api/v1/reservations/history/
 
-**What:** List archived reservations for a student (trip is archived).
-**Who:** Students
-**Auth:** No
-
-**Query Parameters**
-
-| Param | Type | Required |
-|-------|------|----------|
-| `user_id` | uuid | **Yes** |
+**What:** List archived reservations.
+**Who:** Authenticated users
+**Auth:** Yes
 
 **Response 200** — Same shape as active list. Filters: `trip.archived_at IS NOT NULL`.
 
-**Errors**
+**Behavior**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "user_id is required."}` | Missing query param |
+- `LOGISTICS_STAFF` sees all archived reservations.
+- Non-staff users see only their own archived reservations.
 
 ---
 
-#### DELETE /api/v1/reservations/{id}/?user_id={uuid}
+#### DELETE /api/v1/reservations/{id}/
 
 **What:** Cancel a reservation.
-**Who:** Students (owner only)
-**Auth:** No
-
-**Query Parameters**
-
-| Param | Type | Required |
-|-------|------|----------|
-| `user_id` | uuid | **Yes** (must match reservation owner) |
+**Who:** Reservation owner or logistics staff
+**Auth:** Yes
 
 **Response 204** — Deleted. Seat becomes available again.
 
 **Errors**
 
-| Status | Message | Trigger |
-|--------|---------|---------|
-| 400 | `{"detail": "user_id is required."}` | Missing query param |
-| 400 | `{"detail": "Cannot cancel a reservation for an archived trip."}` | Trip is archived |
-| 404 | (empty body) | Reservation not found or user_id mismatch |
+| Status | Message                                                           | Trigger                                          |
+| ------ | ----------------------------------------------------------------- | ------------------------------------------------ |
+| 400    | `{"detail": "Cannot cancel a reservation for an archived trip."}` | Trip is archived                                 |
+| 404    | (empty body)                                                      | Reservation not found or not owned by the caller |
 
 ---
 
-### 8 — Reports (`/api/v1/reports/`) [MISSING]
+### 8 — Reports (`/api/v1/reports/`)
 
-**Status:** No endpoints implemented. `urls.py` has empty `urlpatterns = []`. Models, views, and serializers are placeholder stubs.
+**What:** Incident reports for late buses, no-shows, full buses, accidents, and related issues.
+**Who:** Authenticated users
+**Auth:** Yes
+
+**Behavior**
+
+- `GET /api/v1/reports/`: staff sees all reports; other users see only reports they created.
+- `POST /api/v1/reports/`: any authenticated user can create a report; `reporter` is always the authenticated user.
+- `GET /api/v1/reports/{id}/`: authenticated access through the same queryset rules.
+- `PATCH/PUT /api/v1/reports/{id}/`: logistics staff only.
+- `DELETE /api/v1/reports/{id}/`: follows the `ModelViewSet` default permission (`IsAuthenticated`), so the current implementation allows authenticated deletes unless tightened separately.
 
 ---
 
@@ -1040,28 +1021,28 @@ Ordered by `created_at` descending. Filters: `trip.archived_at IS NULL`.
 
 ### User (`apps.users`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | UUIDField (PK) | No | Auto-generated |
-| `login_42` | CharField(100) | Yes (nullable, blank) | Unique |
-| `email` | EmailField | No | Unique, used as USERNAME_FIELD |
-| `role` | CharField(20) | No | Choices: `STUDENT`, `LOGISTICS_STAFF`, `DRIVER`. Default: `STUDENT` |
-| `station` | ForeignKey → Station | Yes (nullable) | SET_NULL on delete |
-| `is_active` | BooleanField | No | Default: True |
-| `is_staff` | BooleanField | No | Default: False |
-| `created_at` | DateTimeField | No | Auto-set on create |
-| `password` | CharField | No | Inherited from AbstractBaseUser |
-| `last_login` | DateTimeField | Yes | Inherited from AbstractBaseUser |
+| Field        | Type                 | Nullable              | Notes                                                               |
+| ------------ | -------------------- | --------------------- | ------------------------------------------------------------------- |
+| `id`         | UUIDField (PK)       | No                    | Auto-generated                                                      |
+| `login_42`   | CharField(100)       | Yes (nullable, blank) | Unique                                                              |
+| `email`      | EmailField           | No                    | Unique, used as USERNAME_FIELD                                      |
+| `role`       | CharField(20)        | No                    | Choices: `STUDENT`, `LOGISTICS_STAFF`, `DRIVER`. Default: `STUDENT` |
+| `station`    | ForeignKey → Station | Yes (nullable)        | SET_NULL on delete                                                  |
+| `is_active`  | BooleanField         | No                    | Default: True                                                       |
+| `is_staff`   | BooleanField         | No                    | Default: False                                                      |
+| `created_at` | DateTimeField        | No                    | Auto-set on create                                                  |
+| `password`   | CharField            | No                    | Inherited from AbstractBaseUser                                     |
+| `last_login` | DateTimeField        | Yes                   | Inherited from AbstractBaseUser                                     |
 
 ---
 
 ### Station (`apps.stations`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | UUIDField (PK) | No | Auto-generated |
-| `name` | CharField(100) | No | Unique |
-| `created_at` | DateTimeField | No | Auto-set on create |
+| Field        | Type           | Nullable | Notes              |
+| ------------ | -------------- | -------- | ------------------ |
+| `id`         | UUIDField (PK) | No       | Auto-generated     |
+| `name`       | CharField(100) | No       | Unique             |
+| `created_at` | DateTimeField  | No       | Auto-set on create |
 
 Ordering: `name` ascending.
 
@@ -1069,13 +1050,13 @@ Ordering: `name` ascending.
 
 ### Bus (`apps.buses`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | UUIDField (PK) | No | Auto-generated |
-| `name` | CharField(100) | No | |
-| `plate` | CharField(20) | No | Unique |
-| `seat_capacity` | PositiveIntegerField | No | |
-| `created_at` | DateTimeField | No | Auto-set on create |
+| Field           | Type                 | Nullable | Notes              |
+| --------------- | -------------------- | -------- | ------------------ |
+| `id`            | UUIDField (PK)       | No       | Auto-generated     |
+| `name`          | CharField(100)       | No       |                    |
+| `plate`         | CharField(20)        | No       | Unique             |
+| `seat_capacity` | PositiveIntegerField | No       |                    |
+| `created_at`    | DateTimeField        | No       | Auto-set on create |
 
 Ordering: `name` ascending.
 
@@ -1083,12 +1064,12 @@ Ordering: `name` ascending.
 
 ### Route (`apps.routes`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | UUIDField (PK) | No | Auto-generated |
-| `name` | CharField(100) | No | Unique |
-| `window` | CharField(20) | No | Choices: `peak`, `consolidated` |
-| `created_at` | DateTimeField | No | Auto-set on create |
+| Field        | Type           | Nullable | Notes                           |
+| ------------ | -------------- | -------- | ------------------------------- |
+| `id`         | UUIDField (PK) | No       | Auto-generated                  |
+| `name`       | CharField(100) | No       | Unique                          |
+| `window`     | CharField(20)  | No       | Choices: `peak`, `consolidated` |
+| `created_at` | DateTimeField  | No       | Auto-set on create              |
 
 Ordering: `name` ascending.
 
@@ -1096,12 +1077,12 @@ Ordering: `name` ascending.
 
 ### RouteStation (`apps.routes`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | AutoField (PK) | No | Django default |
-| `route` | ForeignKey → Route | No | CASCADE, `related_name='route_stations'` |
-| `station` | ForeignKey → Station | No | PROTECT |
-| `order` | PositiveIntegerField | No | |
+| Field     | Type                 | Nullable | Notes                                    |
+| --------- | -------------------- | -------- | ---------------------------------------- |
+| `id`      | AutoField (PK)       | No       | Django default                           |
+| `route`   | ForeignKey → Route   | No       | CASCADE, `related_name='route_stations'` |
+| `station` | ForeignKey → Station | No       | PROTECT                                  |
+| `order`   | PositiveIntegerField | No       |                                          |
 
 Constraints: `unique_together = [('route', 'order'), ('route', 'station')]`
 Ordering: `order` ascending.
@@ -1110,14 +1091,14 @@ Ordering: `order` ascending.
 
 ### Driver (`apps.drivers`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | UUIDField (PK) | No | Auto-generated |
-| `name` | CharField(100) | No | |
-| `username` | CharField(100) | No | Unique |
-| `password` | CharField(255) | No | Stored hashed via `make_password` |
-| `status` | CharField(20) | No | Choices: `active`, `inactive`. Default: `active` |
-| `created_at` | DateTimeField | No | Auto-set on create |
+| Field        | Type           | Nullable | Notes                                            |
+| ------------ | -------------- | -------- | ------------------------------------------------ |
+| `id`         | UUIDField (PK) | No       | Auto-generated                                   |
+| `name`       | CharField(100) | No       |                                                  |
+| `username`   | CharField(100) | No       | Unique                                           |
+| `password`   | CharField(255) | No       | Stored hashed via `make_password`                |
+| `status`     | CharField(20)  | No       | Choices: `active`, `inactive`. Default: `active` |
+| `created_at` | DateTimeField  | No       | Auto-set on create                               |
 
 Ordering: `name` ascending.
 
@@ -1125,16 +1106,16 @@ Ordering: `name` ascending.
 
 ### Trip (`apps.trips`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | UUIDField (PK) | No | Auto-generated |
-| `route` | ForeignKey → Route | No | PROTECT |
-| `bus` | ForeignKey → Bus | No | PROTECT |
-| `driver` | ForeignKey → Driver | No | PROTECT |
-| `departure_datetime` | DateTimeField | No | |
-| `seats` | PositiveIntegerField | No | Must be ≤ bus.seat_capacity |
-| `archived_at` | DateTimeField | Yes (nullable) | Default: null |
-| `created_at` | DateTimeField | No | Auto-set on create |
+| Field                | Type                 | Nullable       | Notes                       |
+| -------------------- | -------------------- | -------------- | --------------------------- |
+| `id`                 | UUIDField (PK)       | No             | Auto-generated              |
+| `route`              | ForeignKey → Route   | No             | PROTECT                     |
+| `bus`                | ForeignKey → Bus     | No             | PROTECT                     |
+| `driver`             | ForeignKey → Driver  | No             | PROTECT                     |
+| `departure_datetime` | DateTimeField        | No             |                             |
+| `seats`              | PositiveIntegerField | No             | Must be ≤ bus.seat_capacity |
+| `archived_at`        | DateTimeField        | Yes (nullable) | Default: null               |
+| `created_at`         | DateTimeField        | No             | Auto-set on create          |
 
 Ordering: `departure_datetime` ascending.
 
@@ -1142,87 +1123,46 @@ Ordering: `departure_datetime` ascending.
 
 ### Reservation (`apps.reservations`)
 
-| Field | Type | Nullable | Notes |
-|-------|------|----------|-------|
-| `id` | UUIDField (PK) | No | Auto-generated |
-| `trip` | ForeignKey → Trip | No | CASCADE, `related_name='reservations'` |
-| `student` | ForeignKey → User | No | CASCADE |
-| `created_at` | DateTimeField | No | Auto-set on create |
+| Field        | Type              | Nullable | Notes                                  |
+| ------------ | ----------------- | -------- | -------------------------------------- |
+| `id`         | UUIDField (PK)    | No       | Auto-generated                         |
+| `trip`       | ForeignKey → Trip | No       | CASCADE, `related_name='reservations'` |
+| `student`    | ForeignKey → User | No       | CASCADE                                |
+| `created_at` | DateTimeField     | No       | Auto-set on create                     |
 
 Constraints: `unique_together = [('trip', 'student')]`
 Ordering: `-created_at` (newest first).
 
 ---
 
-### Report (`apps.reports`) [MISSING]
+### Report (`apps.reports`)
 
-No model fields defined. File contains only: `# Models will be implemented in the next session`
-
----
-
-## MISSING / NOT YET IMPLEMENTED
-
-| Item | Status | Details |
-|------|--------|---------|
-| **Reports app — all endpoints** | [MISSING] | `urls.py` is empty. Models, views, serializers are stubs with placeholder comments. |
-| **POST /api/v1/reports/** | [MISSING] | Student submits a report — not implemented |
-| **GET /api/v1/reports/** | [MISSING] | Staff lists reports — not implemented |
-| **GET /api/v1/reports/{id}/** | [MISSING] | Staff views a report — not implemented |
-| **PATCH /api/v1/reports/{id}/** | [MISSING] | Staff updates report status — not implemented |
-| **DELETE /api/v1/reports/{id}/** | [MISSING] | Staff deletes a report — not implemented |
-| **`archive_trips` management command** | [MISSING] | File exists at `apps/trips/management/commands/archive_trips.py` but `handle()` is empty (`pass`). Help text says "Archive trips — stub". |
-| **Role-based permissions** | [MISSING] | Settings define `IsAuthenticated` as default, but every view overrides with `AllowAny`. No `IsAdminUser` or custom permission classes exist. Staff-only endpoints (stations/buses/routes/drivers/trips CRUD) have no role checks. |
-| **Reports tests** | [MISSING] | `apps/reports/tests.py` has no tests (default Django stub). |
+| Field         | Type              | Nullable | Notes                                                   |
+| ------------- | ----------------- | -------- | ------------------------------------------------------- |
+| `id`          | UUIDField (PK)    | No       | Auto-generated                                          |
+| `reporter`    | ForeignKey → User | No       | CASCADE, `related_name='reports'`                       |
+| `trip`        | ForeignKey → Trip | Yes      | SET_NULL, optional                                      |
+| `category`    | CharField(20)     | No       | Choices: `late`, `no_show`, `full`, `accident`, `other` |
+| `description` | TextField         | Yes      | Blank allowed                                           |
+| `status`      | CharField(20)     | No       | Choices: `pending`, `resolved`                          |
+| `created_at`  | DateTimeField     | No       | Auto-set on create                                      |
 
 ---
 
-## KNOWN BUGS
+## IMPLEMENTATION NOTES
 
-### 1. No permission enforcement on admin endpoints
+- `archive_trips` is implemented as a management command and archives trips that departed more than 25 minutes ago and have reservations.
+- Resource permissions are enforced with `IsAuthenticated` and custom role-based permission classes; the historical `AllowAny` audit notes no longer apply.
+- Trip responses expose `seats_left` as a derived read-only field. Capacity is defined by the related bus.
+- Incident reports are implemented under `/api/v1/reports/` using a DRF router-backed `ModelViewSet`.
 
-**Severity:** High
-**Where:** All views in stations, buses, routes, drivers, trips, reservations
-**Problem:** Every view sets `permission_classes = [AllowAny]`. This means any unauthenticated user can create, update, or delete stations, buses, routes, drivers, and trips. The settings file has `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]` but it's overridden everywhere.
-**Impact:** Any anonymous user can mutate all data.
+---
 
-### 2. Reservations use `user_id` body/query param instead of JWT user
+## KNOWN LIMITATIONS
 
-**Severity:** High
-**Where:** `apps/reservations/views.py` — all views
-**Problem:** Reservations identify the student via a `user_id` parameter in the request body or query string, not from the JWT token's `request.user`. Combined with `AllowAny`, anyone can create/delete reservations for any user by passing their UUID.
-**Impact:** No ownership verification. A user can cancel another user's reservation or book on their behalf.
-
-### 3. DELETE on reservations reads `user_id` from query params, but tests send it in request body
+### 1. Trip serializer returns FK UUIDs, not fully nested route/bus/driver objects
 
 **Severity:** Low
-**Where:** `apps/reservations/views.py` line `user_id = request.query_params.get('user_id')` vs `tests.py` using `self.client.delete(url, {'user_id': ...}, format='json')`
-**Problem:** DRF's `delete()` with `format='json'` sends data in the request body, but the view reads from `query_params`. In the test the DRF test client may or may not put JSON body data into query_params depending on the method. This could cause test results to differ from real client behavior.
-**Impact:** The `DELETE` endpoint may behave differently when called from a real frontend (which would use `?user_id=` in the URL) vs the test suite.
-
-### 4. `archive_trips` cron command does nothing
-
-**Severity:** Medium
-**Where:** `apps/trips/management/commands/archive_trips.py`
-**Problem:** The command's `handle()` method is `pass`. If a cron job runs this, no trips get archived.
-**Impact:** Trips never get auto-archived. The `archived_at` field only changes if staff manually sets it (no endpoint for that either — it's read-only in the serializer).
-
-### 5. No way to archive a trip via the API
-
-**Severity:** Medium
 **Where:** `apps/trips/serializers.py`
-**Problem:** `archived_at` is in `read_only_fields`. There is no endpoint to set it. The management command is a stub.
-**Impact:** Trips cannot be archived through any working mechanism. The reservation history endpoint (which filters by `archived_at IS NOT NULL`) will always return empty results in practice.
-
-### 6. Trip serializer returns FK UUIDs, not nested objects
-
-**Severity:** Low (design choice)
-**Where:** `apps/trips/serializers.py`
-**Problem:** The `TripSerializer` returns `route`, `bus`, `driver` as raw UUID strings. The `/trips/available/` endpoint uses this same serializer, so the frontend gets no route name/station info in the response.
-**Impact:** Frontend needs additional requests to resolve route/bus/driver details when displaying available trips.
-
-### 7. Seats validation edge case on PATCH
-
-**Severity:** Low
-**Where:** `apps/trips/serializers.py` — `validate()` method
-**Problem:** `seats = attrs.get('seats') or getattr(self.instance, 'seats', None)` — if `seats` is explicitly set to `0` in a PATCH, the `or` will fall through to the instance value because `0` is falsy. Same issue for `bus`.
-**Impact:** Setting seats to 0 would bypass validation and use the existing value instead.
+**Problem:** Trip responses return related objects primarily as UUIDs, with a small set of helper labels such as `route_name`, `bus_name`, and `seats_left`.
+**Impact:** Clients that need full route/bus/driver payloads may still need additional requests or local joins.

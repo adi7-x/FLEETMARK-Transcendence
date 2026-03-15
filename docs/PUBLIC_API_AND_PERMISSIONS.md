@@ -1,280 +1,255 @@
-# Public API & Advanced Permissions — SSBS
+# Public API & Permissions
+
+Current-state reference for the backend exposure and access-control model.
+
+This file intentionally describes what the code does now. It does not preserve older milestone language such as "what was implemented" or historical security notes that no longer match the runtime behavior.
 
 ---
 
-## 1. Public API (Major Module — 2 points)
+## 1. Public API Surface
 
-### What is it?
+The backend exposes its API under `/api/v1/` from `backend/ssbs/urls.py`.
 
-A **Public API** is a set of endpoints that external applications (mobile apps, scripts,
-partner systems) can use to interact with your database. It is **secured** so that only
-authorized applications can access it, and **rate-limited** so that no one can overload
-your server.
+Registered route groups:
 
-### What was implemented
+- `/api/v1/auth/`
+- `/api/v1/stations/`
+- `/api/v1/buses/`
+- `/api/v1/routes/`
+- `/api/v1/trips/`
+- `/api/v1/reservations/`
+- `/api/v1/reports/`
+- `/api/v1/drivers/`
 
-#### 1.1 API Key Authentication
+### Publicly reachable endpoints
 
-Every request to the API must include a secret key in the `X-API-Key` HTTP header.
-Without it, the server responds with `403 Forbidden`.
+Only the OAuth entrypoints and token refresh endpoint are intentionally unauthenticated:
 
-**File:** `backend/apps/users/permissions.py`
+| Method | Endpoint                     | Purpose                                                      |
+|--------|------------------------------|--------------------------------------------------------------|
+| `GET`  | `/api/v1/auth/42/login/`     | Return the 42 OAuth authorization URL                        |
+| `GET`  | `/api/v1/auth/42/callback/`  | Receive the 42 OAuth callback and redirect to the frontend with JWTs |
+| `POST` | `/api/v1/auth/token/refresh/`| Exchange a refresh token for a new access token              |
 
-```python
-class HasAPIKey(BasePermission):
-    def has_permission(self, request, view):
-        api_key = request.headers.get('X-API-Key', '')
-        expected_key = os.environ.get('SSBS_API_KEY', '')
-        return api_key and expected_key and api_key == expected_key
-```
-
-**How it works:**
-
-```
-# Without API key → blocked
-curl http://localhost:8000/api/v1/stations/
-→ 403 Forbidden
-
-# With valid API key → allowed
-curl -H "X-API-Key: my-secret-key" http://localhost:8000/api/v1/stations/
-→ 200 OK
-```
-
-The secret key is stored in the `.env` file as `SSBS_API_KEY` and is never committed
-to Git.
-
-#### 1.2 Rate Limiting
-
-Limits how many requests a client can make per hour to prevent abuse and server
-overload.
-
-**File:** `backend/ssbs/settings.py`
-
-```python
-REST_FRAMEWORK = {
-    ...
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',     # unauthenticated users: 100 requests/hour
-        'user': '1000/hour',    # authenticated users: 1000 requests/hour
-    },
-}
-```
-
-**How it works:**
-
-```
-# A bot sends 101 requests in 1 hour (unauthenticated)
-Request #1-100  → 200 OK
-Request #101    → 429 Too Many Requests
-```
-
-#### 1.3 Documentation
-
-All endpoints are documented in `docs/BACKEND_API.md` with:
-- HTTP method and URL
-- Request/response examples
-- Authentication requirements
-
-#### 1.4 Endpoints (13+ endpoints, well above the required 5)
-
-| Method | Endpoint                          | Description                          |
-|--------|-----------------------------------|--------------------------------------|
-| GET    | `/api/v1/stations/`               | List all stations                    |
-| POST   | `/api/v1/stations/`               | Create a station                     |
-| GET    | `/api/v1/stations/<id>/`          | Get a station                        |
-| PUT    | `/api/v1/stations/<id>/`          | Update a station                     |
-| DELETE | `/api/v1/stations/<id>/`          | Delete a station                     |
-| GET    | `/api/v1/buses/`                  | List all buses                       |
-| POST   | `/api/v1/buses/`                  | Create a bus                         |
-| GET    | `/api/v1/buses/<id>/`             | Get a bus                            |
-| PUT    | `/api/v1/buses/<id>/`             | Update a bus                         |
-| DELETE | `/api/v1/buses/<id>/`             | Delete a bus                         |
-| GET    | `/api/v1/drivers/`                | List all drivers                     |
-| POST   | `/api/v1/drivers/`                | Create a driver                      |
-| GET    | `/api/v1/drivers/<id>/`           | Get a driver                         |
-| PUT    | `/api/v1/drivers/<id>/`           | Update a driver                      |
-| DELETE | `/api/v1/drivers/<id>/`           | Delete a driver                      |
-| GET    | `/api/v1/routes/`                 | List all routes                      |
-| POST   | `/api/v1/routes/`                 | Create a route                       |
-| GET    | `/api/v1/routes/<id>/`            | Get a route                          |
-| PUT    | `/api/v1/routes/<id>/`            | Update a route                       |
-| DELETE | `/api/v1/routes/<id>/`            | Delete a route                       |
-| GET    | `/api/v1/trips/`                  | List all trips                       |
-| POST   | `/api/v1/trips/`                  | Create a trip                        |
-| GET    | `/api/v1/trips/<id>/`             | Get a trip                           |
-| PUT    | `/api/v1/trips/<id>/`             | Update a trip                        |
-| DELETE | `/api/v1/trips/<id>/`             | Delete a trip                        |
-| GET    | `/api/v1/trips/available/`        | List available trips for a station   |
-| GET    | `/api/v1/reservations/`           | List user reservations               |
-| POST   | `/api/v1/reservations/`           | Create a reservation                 |
-| DELETE | `/api/v1/reservations/<id>/`      | Cancel a reservation                 |
-| GET    | `/api/v1/reservations/history/`   | Reservation history                  |
-| GET    | `/api/v1/auth/users/`             | List all users                       |
-| GET    | `/api/v1/auth/users/<id>/`        | Get a user                           |
-| PATCH  | `/api/v1/auth/users/<id>/`        | Edit a user                          |
-| DELETE | `/api/v1/auth/users/<id>/`        | Delete a user                        |
+Everything else is authenticated by default unless a view overrides it.
 
 ---
 
-## 2. Advanced Permissions System (Major Module — 2 points)
+## 2. Authentication Model
 
-### What is it?
+### Default API authentication
 
-A **role-based access control (RBAC)** system that restricts what each user can do
-based on their role. Different users see different things and can perform different
-actions.
+`backend/ssbs/settings.py` configures DRF with:
 
-### What was implemented
+- `DEFAULT_AUTHENTICATION_CLASSES = [JWTAuthentication]`
+- `DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`
 
-#### 2.1 Three Roles
+That means authenticated Bearer-token access is the baseline for API routes.
 
-Defined in `backend/apps/users/models.py`:
+Example request header:
 
-| Role                | Who          | What they can do                                              |
-|---------------------|--------------|---------------------------------------------------------------|
-| `LOGISTICS_STAFF`   | School admin | Manage buses, stations, drivers, routes, trips, users         |
-| `STUDENT`           | Student      | Browse available trips, make/cancel reservations, view profile|
-| `DRIVER`            | Bus driver   | View assigned trips                                           |
+```http
+Authorization: Bearer <access_token>
+```
 
-#### 2.2 Permission Classes
+### OAuth/JWT flow
+
+The backend uses 42 Intra OAuth to authenticate users, then issues SimpleJWT access and refresh tokens.
+
+Flow summary:
+
+1. `GET /api/v1/auth/42/login/`
+2. User is redirected to 42
+3. 42 redirects to `GET /api/v1/auth/42/callback/?code=...`
+4. Backend exchanges the code, creates or updates the local user, and issues JWTs
+5. Backend redirects the browser to the frontend `/auth/callback#...` URL with the tokens in the fragment
+
+### API key support
+
+`backend/apps/users/permissions.py` still defines `HasAPIKey`, which validates the `X-API-Key` header against `SSBS_API_KEY`.
+
+Important current-state note: this permission class exists, and `SSBS_API_KEY` is loaded in settings, but no active route currently applies `HasAPIKey`. API access is therefore controlled by JWT authentication and per-view permissions, not by API key enforcement.
+
+---
+
+## 3. Rate Limiting
+
+Global DRF throttling is enabled in `backend/ssbs/settings.py`:
+
+| Scope                | Limit         |
+|----------------------|---------------|
+| Anonymous            | `100/hour`    |
+| Authenticated user | `1000/hour` |
+
+Configured throttle classes:
+
+- `AnonRateThrottle`
+- `UserRateThrottle`
+
+This applies across the API, including the unauthenticated OAuth-related endpoints.
+
+---
+
+## 4. Roles
+
+`backend/apps/users/models.py` defines three application roles:
+
+| Role                | Meaning                         |
+|---------------------|---------------------------------|
+| `LOGISTICS_STAFF`   | Administrative and operational staff |
+| `STUDENT`           | Student rider                   |
+| `DRIVER`            | Driver user                     |
+
+### Automatic role assignment during OAuth
+
+In `backend/apps/users/views.py`:
+
+- users default to `STUDENT` on first OAuth login
+- the login matching `ADMIN_42_LOGIN` is promoted to `LOGISTICS_STAFF`
+
+---
+
+## 5. Custom Permission Classes
 
 Defined in `backend/apps/users/permissions.py`:
 
-| Class                         | What it checks                                               |
+| Class                         | Current behavior                                             |
 |-------------------------------|--------------------------------------------------------------|
-| `HasAPIKey`                   | Is the `X-API-Key` header valid?                             |
-| `IsLogisticsStaff`            | Is the user logged in AND has role `LOGISTICS_STAFF`?        |
-| `IsStudent`                   | Is the user logged in AND has role `STUDENT`?                |
-| `IsDriver`                    | Is the user logged in AND has role `DRIVER`?                 |
-| `IsLogisticsStaffOrReadOnly`  | Staff can do anything; others can only read (GET)            |
+| `HasAPIKey`                   | Accepts requests with a valid `X-API-Key` header matching `SSBS_API_KEY` |
+| `IsLogisticsStaff`            | Allows only authenticated users whose role is `LOGISTICS_STAFF` |
+| `IsStudent`                   | Allows only authenticated users whose role is `STUDENT`      |
+| `IsDriver`                    | Allows only authenticated users whose role is `DRIVER`       |
+| `IsLogisticsStaffOrReadOnly`  | Allows read methods for everyone, write methods only for logistics staff |
 
-#### 2.3 Permission Matrix — Who Can Access What
+Current usage note:
 
-| Endpoint                              | Permission         | LOGISTICS_STAFF | STUDENT | DRIVER | Anonymous |
-|---------------------------------------|-------------------|:---------------:|:-------:|:------:|:---------:|
-| `POST /auth/42/login/`                | AllowAny          | ✅              | ✅      | ✅     | ✅        |
-| `GET /auth/42/callback/`              | AllowAny          | ✅              | ✅      | ✅     | ✅        |
-| `POST /auth/token/refresh/`           | AllowAny          | ✅              | ✅      | ✅     | ✅        |
-| `GET/PATCH /auth/me/`                 | IsAuthenticated   | ✅              | ✅      | ✅     | ❌        |
-| `GET /auth/users/`                    | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/PATCH/DELETE /auth/users/<id>/`  | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET /stations/`                      | IsAuthenticated   | ✅              | ✅      | ✅     | ❌        |
-| `POST /stations/`                     | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET /stations/<id>/`                 | IsAuthenticated   | ✅              | ✅      | ✅     | ❌        |
-| `PUT/DELETE /stations/<id>/`          | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/POST /buses/`                    | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/PUT/DELETE /buses/<id>/`         | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/POST /drivers/`                  | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/PUT/DELETE /drivers/<id>/`       | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/POST /routes/`                   | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/PUT/DELETE /routes/<id>/`        | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/POST /trips/`                    | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET/PUT/DELETE /trips/<id>/`         | IsLogisticsStaff  | ✅              | ❌      | ❌     | ❌        |
-| `GET /trips/available/`               | IsAuthenticated   | ✅              | ✅      | ✅     | ❌        |
-| `GET/POST /reservations/`             | IsAuthenticated   | ✅              | ✅      | ✅     | ❌        |
-| `DELETE /reservations/<id>/`          | IsAuthenticated   | ✅              | ✅      | ✅     | ❌        |
-| `GET /reservations/history/`          | IsAuthenticated   | ✅              | ✅      | ✅     | ❌        |
-
-
-
-#### 2.4 User CRUD (Logistics Staff Only)
-
-**New endpoints** for managing users:
-
-| Method | Endpoint                       | Action                                  |
-|--------|--------------------------------|-----------------------------------------|
-| GET    | `/api/v1/auth/users/`          | List all users                          |
-| GET    | `/api/v1/auth/users/<id>/`     | View a specific user                    |
-| PATCH  | `/api/v1/auth/users/<id>/`     | Edit user (role, station, is_active)    |
-| DELETE | `/api/v1/auth/users/<id>/`     | Delete a user                           |
-
-**Files:**
-- `backend/apps/users/views.py` — `UserListView`, `UserDetailView`
-- `backend/apps/users/serializers.py` — `UserAdminSerializer` (allows staff to edit role, station, is_active)
-- `backend/apps/users/urls.py` — new URL patterns
-
-#### 2.5 How the Flow Works
-
-```
-Student logs in via 42 OAuth
-    → Gets JWT token with role=STUDENT
-    → Tries GET /api/v1/buses/
-    → IsLogisticsStaff checks: role == LOGISTICS_STAFF? NO
-    → 403 Forbidden
-
-    → Tries GET /api/v1/trips/available/?station_id=xxx
-    → IsAuthenticated checks: is logged in? YES
-    → 200 OK — sees available trips
-
-Staff logs in via 42 OAuth
-    → Gets JWT token with role=LOGISTICS_STAFF
-    → Tries GET /api/v1/buses/
-    → IsLogisticsStaff checks: role == LOGISTICS_STAFF? YES
-    → 200 OK — sees all buses
-
-    → Tries DELETE /api/v1/auth/users/<student-id>/
-    → IsLogisticsStaff checks: role == LOGISTICS_STAFF? YES
-    → 204 No Content — user deleted
-```
+- `IsLogisticsStaff` is actively used by several views
+- `HasAPIKey`, `IsStudent`, `IsDriver`, and `IsLogisticsStaffOrReadOnly` are currently defined but not attached to active routes in this codebase
 
 ---
 
-## 3. Files Changed
+## 6. Endpoint Permission Matrix
 
-| File                                    | Changes                                                      |
-|-----------------------------------------|--------------------------------------------------------------|
-| `backend/apps/users/permissions.py`     | Added `HasAPIKey`, `IsLogisticsStaffOrReadOnly`              |
-| `backend/ssbs/settings.py`              | Added throttle config, `SSBS_API_KEY` env var                |
-| `backend/apps/users/serializers.py`     | Added `UserAdminSerializer`                                  |
-| `backend/apps/users/views.py`           | Added `UserListView`, `UserDetailView`                       |
-| `backend/apps/users/urls.py`            | Added `users/`, `users/<uuid:pk>/`                           |
-| `backend/apps/buses/views.py`           | `AllowAny` → `IsLogisticsStaff`                              |
-| `backend/apps/stations/views.py`        | GET → `IsAuthenticated`, POST/PUT/DELETE → `IsLogisticsStaff`|
-| `backend/apps/drivers/views.py`         | `AllowAny` → `IsLogisticsStaff`                              |
-| `backend/apps/routes/views.py`          | `AllowAny` → `IsLogisticsStaff`                              |
-| `backend/apps/trips/views.py`           | `AllowAny` → `IsLogisticsStaff` / `IsAuthenticated`          |
-| `backend/apps/reservations/views.py`    | `AllowAny` → `IsAuthenticated`                               |
-| `.env.example`                          | Added `SSBS_API_KEY`                                         |
+### Authentication and user management
+
+| Endpoint                          | Permission behavior                    |
+|-----------------------------------|----------------------------------------|
+| `GET /api/v1/auth/42/login/`      | `AllowAny`                             |
+| `GET /api/v1/auth/42/callback/`   | `AllowAny`                             |
+| `POST /api/v1/auth/token/refresh/`| Public SimpleJWT refresh endpoint      |
+| `GET /api/v1/auth/me/`            | `IsAuthenticated`                      |
+| `PATCH /api/v1/auth/me/`          | `IsAuthenticated`                      |
+| `GET /api/v1/auth/users/`         | `IsLogisticsStaff`                     |
+| `GET /api/v1/auth/users/<id>/`    | `IsLogisticsStaff`                     |
+| `PATCH /api/v1/auth/users/<id>/`  | `IsLogisticsStaff`                     |
+| `DELETE /api/v1/auth/users/<id>/` | `IsLogisticsStaff`                     |
+
+### Stations
+
+| Endpoint                                 | Permission behavior                |
+|------------------------------------------|------------------------------------|
+| `GET /api/v1/stations/`                  | Authenticated users can list       |
+| `POST /api/v1/stations/`                 | Logistics staff only               |
+| `GET /api/v1/stations/<id>/`             | Authenticated users can retrieve   |
+| `PUT/PATCH/DELETE /api/v1/stations/<id>/`| Logistics staff only               |
+
+### Buses
+
+| Endpoint                              | Permission behavior                |
+|---------------------------------------|------------------------------------|
+| `GET /api/v1/buses/`                  | Authenticated users can list       |
+| `POST /api/v1/buses/`                 | Logistics staff only               |
+| `GET /api/v1/buses/<id>/`             | Authenticated users can retrieve   |
+| `PUT/PATCH/DELETE /api/v1/buses/<id>/`| Logistics staff only               |
+
+### Routes
+
+| Endpoint                               | Permission behavior                |
+|----------------------------------------|------------------------------------|
+| `GET /api/v1/routes/`                  | Authenticated users can list       |
+| `POST /api/v1/routes/`                 | Logistics staff only               |
+| `GET /api/v1/routes/<id>/`             | Authenticated users can retrieve   |
+| `PUT/PATCH/DELETE /api/v1/routes/<id>/`| Logistics staff only               |
+
+### Drivers
+
+| Endpoint                                | Permission behavior  |
+|-----------------------------------------|----------------------|
+| `GET /api/v1/drivers/`                  | Logistics staff only |
+| `POST /api/v1/drivers/`                 | Logistics staff only |
+| `GET /api/v1/drivers/<id>/`             | Logistics staff only |
+| `PUT/PATCH/DELETE /api/v1/drivers/<id>/`| Logistics staff only |
+
+### Trips
+
+| Endpoint                                            | Permission behavior  |
+|-----------------------------------------------------|----------------------|
+| `GET /api/v1/trips/`                                | Logistics staff only |
+| `POST /api/v1/trips/`                               | Logistics staff only |
+| `GET /api/v1/trips/<id>/`                           | Logistics staff only |
+| `PUT/PATCH/DELETE /api/v1/trips/<id>/`              | Logistics staff only |
+| `GET /api/v1/trips/available/?station_id=...`       | Any authenticated user |
+
+### Reservations
+
+| Endpoint                                   | Permission behavior                                             |
+|--------------------------------------------|-----------------------------------------------------------------|
+| `GET /api/v1/reservations/`                | Any authenticated user; results are role-filtered               |
+| `POST /api/v1/reservations/`               | Authenticated users reach the endpoint, but only `STUDENT` can create |
+| `DELETE /api/v1/reservations/<id>/`        | Any authenticated user; non-staff can only cancel their own reservation |
+| `GET /api/v1/reservations/history/`        | Any authenticated user; results are role-filtered               |
+
+### Incident reports
+
+The reports API is exposed through a DRF `ModelViewSet` under `/api/v1/reports/`.
+
+| Endpoint                        | Permission behavior                                             |
+|---------------------------------|-----------------------------------------------------------------|
+| `GET /api/v1/reports/`          | `IsAuthenticated`; staff sees all reports, others only their own |
+| `POST /api/v1/reports/`         | `IsAuthenticated`; reporter is forced to the current user      |
+| `GET /api/v1/reports/<id>/`     | `IsAuthenticated`; queryset limits non-staff to their own reports |
+| `PATCH /api/v1/reports/<id>/`   | `IsAuthenticated`; only logistics staff can update             |
+| `PUT /api/v1/reports/<id>/`     | `IsAuthenticated`; only logistics staff can update             |
+| `DELETE /api/v1/reports/<id>/`  | `IsAuthenticated`; current implementation follows the viewset default destroy path with no extra staff-only guard |
+
+That last point is important: the view explicitly restricts updates to staff, but it does not add a matching destroy guard. Any authenticated user who can reach an object through the queryset may delete it. Staff can delete any report; non-staff can delete their own reports.
 
 ---
 
-## 4. Environment Variable
+## 7. Behavior Notes That Matter
 
-Add to your `.env` file:
+### Reservations are narrower than the class-level permission suggests
 
-```bash
-SSBS_API_KEY=your-secret-api-key-here
-```
+`ReservationListCreateView` and `ReservationDetailView` use `IsAuthenticated`, but business logic applies additional role and ownership checks:
 
-#### How to generate a secure key
+- logistics staff cannot create reservations
+- only students can create reservations
+- logistics staff can list all current or historical reservations
+- non-staff users only see their own reservations
+- non-staff users can only cancel their own reservations
 
-Run this command in your terminal:
+### Several read endpoints are broader than older docs claimed
 
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-```
+Stations, buses, and routes are readable by any authenticated user. They are not logistics-staff-only for `GET`.
 
-**What it does:**
-- `secrets` is Python's built-in module for generating cryptographically secure random values
-- `token_urlsafe(32)` generates a random 43-character string using letters, numbers, `-`, and `_`
-- The output is impossible to guess or brute-force
+### Trips are stricter than older docs claimed
 
-**Example:**
+General trip CRUD endpoints are logistics-staff-only. The student-facing trip browsing path is the dedicated `/api/v1/trips/available/` endpoint.
 
-```bash
-$ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-kX9z_bR7mQ2vL4nT8wP1jY6cA3hF5dS0eU9iK7oN
-```
+---
 
-Then paste the result into your `.env` file:
+## 8. Source of Truth
 
-```bash
-SSBS_API_KEY=kX9z_bR7mQ2vL4nT8wP1jY6cA3hF5dS0eU9iK7oN
-```
+When this file and other documentation disagree, treat the code below as authoritative:
 
-This key is what external applications must send in the `X-API-Key` HTTP header
-to access the API. You only need to generate it once.
+- `backend/ssbs/settings.py`
+- `backend/ssbs/urls.py`
+- `backend/apps/users/permissions.py`
+- `backend/apps/users/views.py`
+- `backend/apps/stations/views.py`
+- `backend/apps/buses/views.py`
+- `backend/apps/routes/views.py`
+- `backend/apps/drivers/views.py`
+- `backend/apps/trips/views.py`
+- `backend/apps/reservations/views.py`
+- `backend/apps/reports/views.py`

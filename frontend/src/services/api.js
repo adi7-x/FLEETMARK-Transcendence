@@ -1,5 +1,12 @@
 // src/services/api.js
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Base API url (include version, no trailing slash)
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
+
+// Build absolute endpoint, avoiding duplicate slashes
+const buildUrl = (endpoint) => {
+  const cleanEndpoint = endpoint.replace(/^\/+/, '');
+  return `${API_URL}/${cleanEndpoint}`;
+};
 
 // Helper to get auth headers
 const getAuthHeaders = () => {
@@ -9,7 +16,7 @@ const getAuthHeaders = () => {
 
 // Generic API call function
 const apiCall = async (endpoint, options = {}) => {
-  const url = `${API_URL}${endpoint}`;
+  const url = buildUrl(endpoint);
   const config = {
     headers: {
       'Content-Type': 'application/json',
@@ -46,19 +53,19 @@ const apiCall = async (endpoint, options = {}) => {
 // Authentication API
 export const auth = {
   // Get OAuth login URL
-  getLoginUrl: () => apiCall('/v1/auth/42/login/'),
+  getLoginUrl: () => apiCall('auth/42/login/'),
   
   // Get current user profile
-  getProfile: () => apiCall('/v1/auth/me/'),
+  getProfile: () => apiCall('auth/me/'),
   
   // Update user profile
-  updateProfile: (data) => apiCall('/v1/auth/me/', {
+  updateProfile: (data) => apiCall('auth/me/', {
     method: 'PATCH',
     body: JSON.stringify(data),
   }),
   
   // Get all users (admin only)
-  getUsers: () => apiCall('/v1/auth/users/'),
+  getUsers: () => apiCall('auth/users/'),
   
   // Logout (clear local storage)
   logout: () => {
@@ -69,104 +76,104 @@ export const auth = {
 
 // Stations API
 export const stations = {
-  list: () => apiCall('/v1/stations/'),
-  create: (data) => apiCall('/v1/stations/', {
+  list: () => apiCall('stations/'),
+  create: (data) => apiCall('stations/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  update: (id, data) => apiCall(`/v1/stations/${id}/`, {
+  update: (id, data) => apiCall(`stations/${id}/`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  delete: (id) => apiCall(`/v1/stations/${id}/`, { method: 'DELETE' }),
+  delete: (id) => apiCall(`stations/${id}/`, { method: 'DELETE' }),
 };
 
 // Buses API
 export const buses = {
-  list: () => apiCall('/v1/buses/'),
-  create: (data) => apiCall('/v1/buses/', {
+  list: () => apiCall('buses/'),
+  create: (data) => apiCall('buses/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  update: (id, data) => apiCall(`/v1/buses/${id}/`, {
+  update: (id, data) => apiCall(`buses/${id}/`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  delete: (id) => apiCall(`/v1/buses/${id}/`, { method: 'DELETE' }),
+  delete: (id) => apiCall(`buses/${id}/`, { method: 'DELETE' }),
 };
 
 // Drivers API
 export const drivers = {
-  list: () => apiCall('/v1/drivers/'),
-  create: (data) => apiCall('/v1/drivers/', {
+  list: () => apiCall('drivers/'),
+  create: (data) => apiCall('drivers/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  update: (id, data) => apiCall(`/v1/drivers/${id}/`, {
+  update: (id, data) => apiCall(`drivers/${id}/`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  delete: (id) => apiCall(`/v1/drivers/${id}/`, { method: 'DELETE' }),
+  delete: (id) => apiCall(`drivers/${id}/`, { method: 'DELETE' }),
 };
 
 // Trips API
 export const trips = {
-  list: () => apiCall('/v1/trips/'),
-  available: (stationId) => apiCall(`/v1/trips/available/?station_id=${stationId}`),
-  create: (data) => apiCall('/v1/trips/', {
+  list: () => apiCall('trips/'),
+  available: (stationId) => apiCall(`trips/available/?station_id=${stationId}`),
+  create: (data) => apiCall('trips/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  update: (id, data) => apiCall(`/v1/trips/${id}/`, {
+  update: (id, data) => apiCall(`trips/${id}/`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  delete: (id) => apiCall(`/v1/trips/${id}/`, { method: 'DELETE' }),
+  delete: (id) => apiCall(`trips/${id}/`, { method: 'DELETE' }),
 };
 
 // Reservations API
 export const reservations = {
   list: (userId = null) => {
-    const endpoint = userId ? `/v1/reservations/?user_id=${userId}` : '/v1/reservations/';
+    const endpoint = userId ? `reservations/?user_id=${userId}` : 'reservations/';
     return apiCall(endpoint);
   },
   history: (userId = null) => {
-    const endpoint = userId ? `/v1/reservations/history/?user_id=${userId}` : '/v1/reservations/history/';
+    const endpoint = userId ? `reservations/history/?user_id=${userId}` : 'reservations/history/';
     return apiCall(endpoint);
   },
-  create: (data) => apiCall('/v1/reservations/', {
+  create: (data) => apiCall('reservations/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
   delete: (id) => {
-    return apiCall(`/v1/reservations/${id}/`, { method: 'DELETE' }); 
+    return apiCall(`reservations/${id}/`, { method: 'DELETE' }); 
   },
-  deleteWithUser: (id, userId) => apiCall(`/v1/reservations/${id}/?user_id=${userId}`, { method: 'DELETE' })
+  deleteWithUser: (id, userId) => apiCall(`reservations/${id}/?user_id=${userId}`, { method: 'DELETE' })
 };
 
 // Routes API
 export const routes = {
-  list: () => apiCall('/v1/routes/'),
-  create: (data) => apiCall('/v1/routes/', {
+  list: () => apiCall('routes/'),
+  create: (data) => apiCall('routes/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  get: (id) => apiCall(`/v1/routes/${id}/`),
-  update: (id, data) => apiCall(`/v1/routes/${id}/`, {
+  get: (id) => apiCall(`routes/${id}/`),
+  update: (id, data) => apiCall(`routes/${id}/`, {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
-  delete: (id) => apiCall(`/v1/routes/${id}/`, { method: 'DELETE' }),
+  delete: (id) => apiCall(`routes/${id}/`, { method: 'DELETE' }),
 };
 
 // Reports API
 export const reports = {
-  list: () => apiCall('/v1/reports/'),
-  create: (data) => apiCall('/v1/reports/', {
+  list: () => apiCall('reports/'),
+  create: (data) => apiCall('reports/', {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  update: (id, data) => apiCall(`/v1/reports/${id}/`, {
+  update: (id, data) => apiCall(`reports/${id}/`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   }),
@@ -174,13 +181,13 @@ export const reports = {
 
 // Users API (Staff only)
 export const users = {
-  list: () => apiCall('/v1/auth/users/'),
-  get: (id) => apiCall(`/v1/auth/users/${id}/`),
-  update: (id, data) => apiCall(`/v1/auth/users/${id}/`, {
+  list: () => apiCall('auth/users/'),
+  get: (id) => apiCall(`auth/users/${id}/`),
+  update: (id, data) => apiCall(`auth/users/${id}/`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   }),
-  delete: (id) => apiCall(`/v1/auth/users/${id}/`, { method: 'DELETE' }),
+  delete: (id) => apiCall(`auth/users/${id}/`, { method: 'DELETE' }),
 };
 
 // Check if user is authenticated

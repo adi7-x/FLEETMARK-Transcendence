@@ -1,74 +1,79 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { handleOAuthCallback } from '../services/api'
+import { useNavigate } from 'react-router-dom'
+import { getMe } from '../services/api'
 import { useAuth } from '../context/AuthContext'
-import { STORAGE_KEYS } from '../config'
+import type { User, UserRole } from '../types/api'
 import Spinner from '../components/ui/Spinner'
+
+const HYDRATION_RETRY_DELAYS_MS = [400, 1200, 2400]
 
 export default function AuthCallback() {
   const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const { login } = useAuth()
+  const { login, setUser, getDashboardPath, getDefaultRouteForUser } = useAuth()
   const calledRef = useRef(false)
 
   useEffect(() => {
     const handleAuth = async () => {
-      // 1. Try to get tokens from hash (backend redirect method)
       const hash = window.location.hash.substring(1)
       const hashParams = new URLSearchParams(hash)
       const access = hashParams.get('access')
       const refresh = hashParams.get('refresh')
+      const role = hashParams.get('role') as UserRole | null
+      const login42 = hashParams.get('login')
 
-      if (access && refresh) {
-        if (calledRef.current) return
-        calledRef.current = true
-        
-        try {
-          // Store tokens temporarily to allow getMe() to work
-          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, access)
-          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refresh)
-          
-          const user = await import('../services/api').then(m => m.getMe())
-          login({ access, refresh, user })
-          
-          const r = user.role
-          if (r === 'LOGISTICS_STAFF') navigate('/admin')
-          else if (r === 'STUDENT') navigate(user.station ? '/student' : '/onboarding')
-          else if (r === 'DRIVER') navigate('/driver')
-          else navigate('/')
-        } catch (error) {
-          console.error('Hash auth failed:', error)
-          navigate('/?error=auth_failed')
-        }
-        return
-      }
-
-      // 2. Fallback: Try to get code from query params
-      const code = params.get('code')
-      if (!code) {
-        navigate('/')
+      if (!access || !refresh) {
+        navigate('/?error=auth_failed', { replace: true })
         return
       }
 
       if (calledRef.current) return
       calledRef.current = true
 
-      try {
-        const tokens = await handleOAuthCallback(code)
-        login(tokens)
-        const r = tokens.user.role
-        if (r === 'LOGISTICS_STAFF') navigate('/admin')
-        else if (r === 'STUDENT') navigate(tokens.user.station ? '/student' : '/onboarding')
-        else if (r === 'DRIVER') navigate('/driver')
-        else navigate('/')
-      } catch (error) {
-        console.error('Code auth failed:', error)
-        navigate('/?error=auth_failed')
+      if (role) {
+        const provisionalUser: User = {
+          id: 'pending-session',
+          login_42: login42 ?? '',
+          email: '',
+          role,
+          station: null,
+          station_name: null,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        }
+
+        login({ access, refresh, user: provisionalUser })
+        navigate(getDashboardPath(role), { replace: true })
       }
+
+      void hydrateSession(access, refresh)
     }
 
     handleAuth()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return <Spinner text="Signing you in…" />
+
+  async function hydrateSession(access: string, refresh: string) {
+    for (const delay of [0, ...HYDRATION_RETRY_DELAYS_MS]) {
+      if (delay > 0) {
+        await wait(delay)
+      }
+
+      try {
+        const user = await getMe()
+        login({ access, refresh, user })
+        setUser(user)
+        navigate(getDefaultRouteForUser(user), { replace: true })
+        return
+      } catch (error) {
+        console.error('Session hydration attempt failed:', error)
+      }
+    }
+
+    navigate('/?error=auth_failed', { replace: true })
+  }
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
 }

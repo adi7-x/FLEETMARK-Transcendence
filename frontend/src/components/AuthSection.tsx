@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { getLoginUrl, devLogin } from '../services/api';
+import { getLoginUrl } from '../services/api';
 const S = {
   bg2: '#0F1117',
   bg3: '#161B27',
@@ -19,12 +19,15 @@ const STEPS = [
   { n: '03', text: 'Pick your stop — start reserving' },
 ];
 
-const AuthSection = () => {
+interface AuthSectionProps {
+  initialError?: string | null;
+}
+
+const AuthSection = ({ initialError = null }: AuthSectionProps) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
   const [loadingRole, setLoadingRole] = useState<'student' | 'staff' | null>(null);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [devLoading, setDevLoading] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(initialError);
 
   const handleLogin = async (role: 'student' | 'staff') => {
     setLoadingRole(role);

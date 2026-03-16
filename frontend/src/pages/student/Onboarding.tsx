@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getStations, getStoredUser, patchMe } from '../../services/api';
+import { getStations, patchMe } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import type { Station } from '../../types/api';
 
 const V = {
@@ -18,7 +19,7 @@ const V = {
 const Onboarding = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const user = getStoredUser();
+  const { setUser, getDefaultRouteForUser } = useAuth();
 
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,8 +41,8 @@ const Onboarding = () => {
     setError(null);
     try {
       const updatedUser = await patchMe({ station: selected });
-      localStorage.setItem('fleetmark_user', JSON.stringify(updatedUser));
-      window.location.href = '/student';
+      setUser(updatedUser);
+      navigate(getDefaultRouteForUser(updatedUser), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save. Try again.');
       setSaving(false);
@@ -140,7 +141,7 @@ const Onboarding = () => {
           display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <button
-            onClick={() => navigate('/student')}
+            onClick={() => navigate('/student/overview', { replace: true })}
             style={{
               padding: '10px 16px', borderRadius: 8, border: 'none',
               background: 'transparent', color: V.mid,

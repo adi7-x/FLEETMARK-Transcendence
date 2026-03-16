@@ -4,7 +4,13 @@ import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { STORAGE_KEYS, API_ENDPOINTS } from '../config/api.config';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '',
+  baseURL: '',
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 15_000,
+});
+
+export const rawApi = axios.create({
+  baseURL: '',
   headers: { 'Content-Type': 'application/json' },
   timeout: 15_000,
 });
@@ -39,9 +45,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Skip refresh for token endpoints themselves
-    const isTokenEndpoint =
-      originalRequest?.url?.includes('/accounts/token/') ||
-      originalRequest?.url?.includes('/accounts/token/refresh/');
+    const isTokenEndpoint = originalRequest?.url?.includes(API_ENDPOINTS.auth.refresh);
 
     if (error.response?.status === 401 && !originalRequest._retry && !isTokenEndpoint) {
       if (isRefreshing) {
@@ -68,8 +72,8 @@ api.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}${API_ENDPOINTS.auth.refresh}`,
+        const { data } = await rawApi.post(
+          API_ENDPOINTS.auth.refresh,
           { refresh },
         );
 
@@ -102,10 +106,7 @@ function clearAuth() {
   localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
   localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   localStorage.removeItem(STORAGE_KEYS.USER);
-  // Redirect to landing page — avoid infinite loops
-  if (window.location.pathname !== '/') {
-    window.location.href = '/';
-  }
+  window.dispatchEvent(new CustomEvent('fleetmark-auth-changed'));
 }
 
 export default api;

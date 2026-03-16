@@ -2,7 +2,7 @@
 // ── API error mapping — converts axios/API errors to user-friendly messages ──
 
 import { AxiosError } from 'axios';
-import type { ApiError, ApiErrorCode } from '../types/api';
+import type { ApiError, ApiErrorCode, DrfValidationErrors } from '../types/api';
 
 /** Maps backend error codes to human-friendly messages */
 const ERROR_MESSAGES: Record<ApiErrorCode | string, string> = {
@@ -17,6 +17,7 @@ export interface ParsedApiError {
   message: string;
   code: string | null;
   status: number;
+  validation: Record<string, string[]>;
 }
 
 /**
@@ -34,32 +35,32 @@ export function parseApiError(error: unknown): ParsedApiError {
         message: ERROR_MESSAGES[apiErr.code ?? ''] || apiErr.error || 'Something went wrong.',
         code: apiErr.code ?? null,
         status,
+        validation: {},
       };
     }
 
     // DRF default format: { detail: "..." }
     if (data && typeof data === 'object' && 'detail' in data && typeof data.detail === 'string') {
-      return { message: data.detail, code: null, status };
+      return { message: data.detail, code: null, status, validation: {} };
     }
 
     // DRF validation errors: { field: ["error1", "error2"] }
     if (data && typeof data === 'object') {
       const messages: string[] = [];
-      for (const [field, errors] of Object.entries(data)) {
-        if (Array.isArray(errors)) {
-          messages.push(`${field}: ${errors.join(', ')}`);
-        } else if (typeof errors === 'string') {
-          messages.push(errors);
-        }
+      const validation = normalizeValidationErrors(data as DrfValidationErrors);
+
+      for (const [field, errors] of Object.entries(validation)) {
+        messages.push(`${field}: ${errors.join(', ')}`);
       }
+
       if (messages.length) {
-        return { message: messages.join('. '), code: null, status };
+        return { message: messages.join('. '), code: null, status, validation };
       }
     }
 
     // Simple string error
     if (typeof data === 'string') {
-      return { message: data, code: null, status };
+      return { message: data, code: null, status, validation: {} };
     }
 
     // Generic HTTP status messages
@@ -76,6 +77,7 @@ export function parseApiError(error: unknown): ParsedApiError {
       message: httpMessages[status] || `Request failed (${status})`,
       code: null,
       status,
+      validation: {},
     };
   }
 
@@ -87,6 +89,7 @@ export function parseApiError(error: unknown): ParsedApiError {
         : 'Network error — please check your connection.',
       code: null,
       status: 0,
+      validation: {},
     };
   }
 
@@ -95,10 +98,36 @@ export function parseApiError(error: unknown): ParsedApiError {
     message: error instanceof Error ? error.message : 'An unexpected error occurred.',
     code: null,
     status: 0,
+    validation: {},
   };
 }
 
 /** Convenience wrapper — returns just the message string */
 export function getErrorMessage(error: unknown): string {
   return parseApiError(error).message;
+}
+
+export function getValidationErrors(error: unknown): Record<string, string[]> {
+  return parseApiError(error).validation;
+}
+
+function normalizeValidationErrors(data: DrfValidationErrors): Record<string, string[]> {
+  const normalized: Record<string, string[]> = {};
+
+  for (const [field, errors] of Object.entries(data)) {
+    if (!errors) {
+      continue;
+    }
+
+    if (Array.isArray(errors)) {
+      normalized[field] = errors.map(String);
+      continue;
+    }
+
+    if (typeof errors === 'string') {
+      normalized[field] = [errors];
+    }
+  }
+
+  return normalized;
 }

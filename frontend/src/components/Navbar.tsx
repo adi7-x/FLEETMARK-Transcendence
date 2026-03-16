@@ -12,7 +12,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, isAuthenticated, getDashboardPath } = useAuth();
+  const { user, isAuthenticated, getDefaultRouteForUser } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -103,7 +103,7 @@ const Navbar = () => {
 
         {isAuthenticated && user ? (
           <button
-            onClick={() => navigate(getDashboardPath(user.role))}
+            onClick={() => navigate(getDefaultRouteForUser(user))}
             className="flex items-center gap-2 rounded-lg text-[13px] font-semibold no-underline transition-all duration-200"
             style={{ padding: '7px 16px', background: 'var(--accent-primary)', color: '#fff' }}
             onMouseEnter={(e) => {
@@ -196,14 +196,27 @@ const Navbar = () => {
               <LanguageSwitcher />
             </div>
             <div className="pt-4">
-              <a
-                href="#auth"
-                onClick={() => setIsOpen(false)}
-                className="block text-center px-4 py-3 rounded-lg text-sm font-semibold no-underline"
-                style={{ background: 'var(--accent-primary)', color: '#fff' }}
-              >
-                {t('landing.nav.signup')} →
-              </a>
+              {isAuthenticated && user ? (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate(getDefaultRouteForUser(user));
+                  }}
+                  className="block w-full text-center px-4 py-3 rounded-lg text-sm font-semibold"
+                  style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                >
+                  {t('landing.nav.dashboard')}
+                </button>
+              ) : (
+                <a
+                  href="#auth"
+                  onClick={() => setIsOpen(false)}
+                  className="block text-center px-4 py-3 rounded-lg text-sm font-semibold no-underline"
+                  style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                >
+                  {t('landing.nav.signup')} →
+                </a>
+              )}
             </div>
           </div>
         </motion.div>

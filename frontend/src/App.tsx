@@ -20,6 +20,7 @@ import NotFound     from './pages/NotFound'
 
 import AdminLayout       from './components/layout/AdminLayout'
 import AdminOverview     from './pages/admin/Overview'
+import AdminStations     from './pages/admin/Stations'
 import AdminBuses        from './pages/admin/Buses'
 import AdminRoutes       from './pages/admin/Routes'
 import AdminReservations from './pages/admin/Reservations'
@@ -50,6 +51,7 @@ export default function App() {
             {/* Admin */}
             <Route path="/admin" element={<ProtectedRoute role="LOGISTICS_STAFF"><AdminLayout><Navigate to="overview" replace /></AdminLayout></ProtectedRoute>} />
             <Route path="/admin/overview" element={<ProtectedRoute role="LOGISTICS_STAFF"><AdminLayout><AdminOverview /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/stations" element={<ProtectedRoute role="LOGISTICS_STAFF"><AdminLayout><AdminStations /></AdminLayout></ProtectedRoute>} />
             <Route path="/admin/buses" element={<ProtectedRoute role="LOGISTICS_STAFF"><AdminLayout><AdminBuses /></AdminLayout></ProtectedRoute>} />
             <Route path="/admin/routes" element={<ProtectedRoute role="LOGISTICS_STAFF"><AdminLayout><AdminRoutes /></AdminLayout></ProtectedRoute>} />
             <Route path="/admin/reservations" element={<ProtectedRoute role="LOGISTICS_STAFF"><AdminLayout><AdminReservations /></AdminLayout></ProtectedRoute>} />

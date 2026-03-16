@@ -6,43 +6,60 @@ const BASE = '/api/v1';
 export const API_ENDPOINTS = {
   // ── Auth ──
   auth: {
-    token: `${BASE}/auth/token/`,
+    login42: `${BASE}/auth/42/login/`,
+    callback42: `${BASE}/auth/42/callback/`,
     refresh: `${BASE}/auth/token/refresh/`,
-    verify: `${BASE}/auth/token/verify/`,
-    oauth42Callback: `${BASE}/auth/42/callback/`,
-    setRole: `${BASE}/auth/set-role/`,
+    me: `${BASE}/auth/me/`,
   },
 
   // ── Users ──
   users: {
     list: `${BASE}/auth/users/`,
-    detail: (id: number) => `${BASE}/auth/users/${id}/`,
+    detail: (id: number | string) => `${BASE}/auth/users/${id}/`,
+  },
+
+  // ── Stations ──
+  stations: {
+    list: `${BASE}/stations/`,
+    detail: (id: number | string) => `${BASE}/stations/${id}/`,
   },
 
   // ── Buses ──
   buses: {
     list: `${BASE}/buses/`,
-    detail: (id: number) => `${BASE}/buses/${id}/`,
+    detail: (id: number | string) => `${BASE}/buses/${id}/`,
   },
 
   // ── Routes ──
   routes: {
     list: `${BASE}/routes/`,
-    detail: (id: number) => `${BASE}/routes/${id}/`,
+    detail: (id: number | string) => `${BASE}/routes/${id}/`,
+  },
+
+  // ── Drivers ──
+  drivers: {
+    list: `${BASE}/drivers/`,
+    detail: (id: number | string) => `${BASE}/drivers/${id}/`,
   },
 
   // ── Trips ──
   trips: {
     list: `${BASE}/trips/`,
-    detail: (id: number) => `${BASE}/trips/${id}/`,
-    start: (id: number) => `${BASE}/trips/${id}/start/`,
-    end: (id: number) => `${BASE}/trips/${id}/end/`,
+    detail: (id: number | string) => `${BASE}/trips/${id}/`,
+    available: `${BASE}/trips/available/`,
   },
 
   // ── Reservations ──
   reservations: {
     list: `${BASE}/reservations/`,
-    detail: (id: number) => `${BASE}/reservations/${id}/`,
+    history: `${BASE}/reservations/history/`,
+    detail: (id: number | string) => `${BASE}/reservations/${id}/`,
+  },
+
+  // ── Reports ──
+  reports: {
+    list: `${BASE}/reports/`,
+    detail: (id: number | string) => `${BASE}/reports/${id}/`,
   },
 } as const;
 

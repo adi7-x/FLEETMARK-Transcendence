@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fleetmark Admin - Trips</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-lowest": "#000000",
+              "on-primary-fixed-variant": "#0057bd",
+              "inverse-primary": "#005bc4",
+              "primary-fixed-dim": "#c3d4ff",
+              "surface-container": "#191a1a",
+              "tertiary-fixed": "#6bff8f",
+              "secondary-fixed": "#e3e2e2",
+              "error-container": "#7f2927",
+              "surface": "#0e0e0e",
+              "on-secondary-fixed": "#3f3f40",
+              "surface-dim": "#0e0e0e",
+              "secondary": "#9e9e9e",
+              "on-tertiary-container": "#005f28",
+              "on-tertiary-fixed-variant": "#006a2d",
+              "secondary-container": "#3b3b3c",
+              "secondary-dim": "#9e9e9e",
+              "inverse-on-surface": "#565554",
+              "secondary-fixed-dim": "#d5d4d4",
+              "surface-bright": "#2c2c2c",
+              "primary-dim": "#98b8ff",
+              "on-error": "#490106",
+              "on-secondary-container": "#c0bfbf",
+              "on-primary-fixed": "#003c86",
+              "primary-container": "#004395",
+              "on-background": "#e7e5e4",
+              "surface-container-low": "#131313",
+              "on-tertiary": "#00692c",
+              "on-tertiary-fixed": "#004a1d",
+              "on-secondary": "#1f2020",
+              "tertiary-container": "#6bff8f",
+              "error-dim": "#bb5551",
+              "on-secondary-fixed-variant": "#5b5b5c",
+              "surface-tint": "#adc6ff",
+              "inverse-surface": "#fcf8f8",
+              "on-surface": "#e7e5e4",
+              "on-primary": "#003d88",
+              "primary": "#adc6ff",
+              "surface-variant": "#252626",
+              "background": "#0e0e0e",
+              "outline": "#767575",
+              "tertiary-fixed-dim": "#5bf083",
+              "surface-container-highest": "#252626",
+              "on-surface-variant": "#acabaa",
+              "tertiary-dim": "#5bf083",
+              "error": "#ee7d77",
+              "surface-container-high": "#1f2020",
+              "outline-variant": "#484848",
+              "on-error-container": "#ff9993",
+              "primary-fixed": "#d8e2ff",
+              "tertiary": "#c5ffc9",
+              "on-primary-container": "#bdd0ff"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #000000; color: #e7e5e4; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="font-body selection:bg-primary selection:text-on-primary overflow-hidden">
+<!-- SideNavBar Integration -->
+<aside class="fixed left-0 top-0 h-full w-[220px] bg-[#131313] flex flex-col py-6 px-4 space-y-8 z-50">
+<div class="flex flex-col space-y-1">
+<span class="text-lg font-bold text-white tracking-tighter">Fleetmark</span>
+<span class="text-[11px] uppercase tracking-[0.1em] text-gray-500 font-mono">1337 Shuttle System</span>
+</div>
+<nav class="flex-1 flex flex-col space-y-1">
+<a class="flex items-center space-x-3 px-3 py-2 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Dashboard</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 bg-[#191a1a] text-blue-400 border-l-2 border-blue-500 scale-[0.98] duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">event_seat</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Trips</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">directions_bus</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Buses</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">map</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Routes</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">person</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Drivers</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">History</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Settings</span>
+</a>
+</nav>
+<div class="mt-auto">
+<button class="w-full flex items-center justify-between px-3 py-2 text-gray-500 hover:text-gray-200 transition-all">
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Log Out</span>
+<span class="material-symbols-outlined text-[18px]">logout</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Shell -->
+<main class="ml-[220px] min-h-screen bg-surface-container-lowest relative">
+<!-- TopAppBar Integration -->
+<header class="fixed top-0 left-[220px] right-0 h-[56px] bg-black border-b border-white/[0.07] flex justify-between items-center px-8 z-40">
+<h1 class="font-headline font-bold text-2xl text-white">Trips Management</h1>
+<div class="flex items-center space-x-4">
+<button class="p-2 text-gray-500 hover:bg-white/5 rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-[7px] text-sm font-bold flex items-center space-x-2 active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>New Trip</span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="pt-[56px] max-w-[1080px] mx-auto px-8 py-10">
+<!-- Filters & Section Header -->
+<div class="mb-10 space-y-6">
+<div>
+<span class="text-[11px] uppercase tracking-[0.2em] font-bold text-primary mb-2 block">System Registry</span>
+<h2 class="text-4xl font-headline font-bold tracking-tight text-white">Active Transit Shuttles</h2>
+</div>
+<div class="flex flex-wrap items-center gap-4 py-4 border-y border-outline-variant/10">
+<div class="flex items-center bg-surface-container-low p-1 rounded-lg">
+<button class="px-4 py-1 text-[11px] font-bold uppercase tracking-wider bg-primary text-on-primary rounded-md">All</button>
+<button class="px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-white transition-colors">Scheduled</button>
+<button class="px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-white transition-colors">Full</button>
+<button class="px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-white transition-colors">Completed</button>
+</div>
+<div class="h-6 w-[1px] bg-outline-variant/20 mx-2"></div>
+<div class="flex items-center space-x-2">
+<span class="text-[10px] uppercase font-bold text-secondary tracking-widest">Route:</span>
+<div class="relative group">
+<button class="flex items-center space-x-2 bg-surface-container-low border border-outline-variant/10 px-3 py-1.5 rounded-md hover:border-primary/50 transition-all">
+<span class="text-xs font-mono">ALL_ROUTES</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Trip Table -->
+<div class="bg-surface-container-low/30 overflow-hidden border border-outline-variant/5 rounded-xl">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/10">
+<th class="px-6 py-4 text-[10px] uppercase tracking-[0.15em] font-bold text-secondary">Departure</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-[0.15em] font-bold text-secondary">Countdown</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-[0.15em] font-bold text-secondary">Route</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-[0.15em] font-bold text-secondary">Bus/Driver</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-[0.15em] font-bold text-secondary">Capacity</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-[0.15em] font-bold text-secondary">Status</th>
+<th class="px-6 py-4 text-right text-[10px] uppercase tracking-[0.15em] font-bold text-secondary">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1 -->
+<tr class="group hover:bg-surface-container transition-all duration-150">
+<td class="px-6 py-4 font-mono text-sm text-primary tracking-tighter">22:45:00</td>
+<td class="px-6 py-4">
+<div class="flex items-center space-x-2">
+<div class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></div>
+<span class="text-error font-mono text-xs font-medium uppercase">In 0h 14m</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-white">Central Hub → East Port</span>
+<span class="text-[10px] text-on-surface-variant font-mono uppercase">Exp-244</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm text-on-surface font-medium">B-902 (Solaris)</span>
+<span class="text-[10px] text-on-surface-variant uppercase font-mono">Driver: J. Wick</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="w-24">
+<div class="flex justify-between text-[10px] font-mono text-on-surface-variant mb-1">
+<span>42/45</span>
+<span>93%</span>
+</div>
+<div class="h-1 w-full bg-surface-container-high overflow-hidden rounded-full">
+<div class="h-full bg-error" style="width: 93%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-error/10 text-error-dim border border-error/20">FULL</span>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="p-1.5 hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">package_2</span></button>
+<button class="p-1.5 hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="group hover:bg-surface-container transition-all duration-150">
+<td class="px-6 py-4 font-mono text-sm text-primary tracking-tighter">23:15:00</td>
+<td class="px-6 py-4">
+<div class="flex items-center space-x-2">
+<div class="w-1.5 h-1.5 rounded-full bg-tertiary"></div>
+<span class="text-tertiary-dim font-mono text-xs font-medium uppercase">In 1h 44m</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-white">Station North → Plaza Center</span>
+<span class="text-[10px] text-on-surface-variant font-mono uppercase">Std-102</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm text-on-surface font-medium">B-441 (Man Lion)</span>
+<span class="text-[10px] text-on-surface-variant uppercase font-mono">Driver: S. Connor</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="w-24">
+<div class="flex justify-between text-[10px] font-mono text-on-surface-variant mb-1">
+<span>12/50</span>
+<span>24%</span>
+</div>
+<div class="h-1 w-full bg-surface-container-high overflow-hidden rounded-full">
+<div class="h-full bg-primary" style="width: 24%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary-dim border border-primary/20">SCHEDULED</span>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="p-1.5 hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">package_2</span></button>
+<button class="p-1.5 hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="group hover:bg-surface-container transition-all duration-150">
+<td class="px-6 py-4 font-mono text-sm text-primary tracking-tighter">23:30:00</td>
+<td class="px-6 py-4">
+<div class="flex items-center space-x-2">
+<div class="w-1.5 h-1.5 rounded-full bg-tertiary"></div>
+<span class="text-tertiary-dim font-mono text-xs font-medium uppercase">In 2h 00m</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-white">Airport Exp → City Terminal</span>
+<span class="text-[10px] text-on-surface-variant font-mono uppercase">Exp-900</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-sm text-on-surface font-medium">B-303 (Mercedes)</span>
+<span class="text-[10px] text-on-surface-variant uppercase font-mono">Driver: E. Ripley</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<div class="w-24">
+<div class="flex justify-between text-[10px] font-mono text-on-surface-variant mb-1">
+<span>28/30</span>
+<span>93%</span>
+</div>
+<div class="h-1 w-full bg-surface-container-high overflow-hidden rounded-full">
+<div class="h-full bg-error" style="width: 93%"></div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-error/10 text-error-dim border border-error/20">NEAR_FULL</span>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="p-1.5 hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">package_2</span></button>
+<button class="p-1.5 hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Dashboard Stats Ticker (Bottom) -->
+<div class="mt-12 grid grid-cols-4 gap-6">
+<div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant/10">
+<span class="text-[10px] uppercase font-mono text-secondary tracking-widest block mb-2">Live Fleet Utilization</span>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-bold text-white">84.2</span>
+<span class="text-xs text-tertiary">%</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant/10">
+<span class="text-[10px] uppercase font-mono text-secondary tracking-widest block mb-2">Pending Reservations</span>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-bold text-white">1,204</span>
+<span class="material-symbols-outlined text-primary text-[14px]">trending_up</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant/10">
+<span class="text-[10px] uppercase font-mono text-secondary tracking-widest block mb-2">Driver Availability</span>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-bold text-white">18</span>
+<span class="text-xs text-on-surface-variant">Active</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant/10">
+<span class="text-[10px] uppercase font-mono text-secondary tracking-widest block mb-2">System Uptime</span>
+<div class="flex items-baseline space-x-2">
+<span class="text-2xl font-bold text-white">99.99</span>
+<span class="text-xs text-on-surface-variant font-mono">#OK</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Background signature glow -->
+<div class="fixed top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none z-0"></div>
+</body></html>

@@ -22,18 +22,19 @@ from apps.users.serializers import (
 from apps.users.permissions import IsLogisticsStaff
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 42 OAuth settings (using django.conf.settings for Vault compatibility)
+# 42 OAuth settings (read from environment)
 # ──────────────────────────────────────────────────────────────────────────────
-from django.conf import settings
-
-INTRA_42_CLIENT_ID = getattr(settings, 'INTRA_42_CLIENT_ID', '')
-INTRA_42_CLIENT_SECRET = getattr(settings, 'INTRA_42_CLIENT_SECRET', '')
-INTRA_42_REDIRECT_URI = getattr(settings, 'INTRA_42_REDIRECT_URI', 'http://localhost:8000/api/v1/auth/42/callback/')
+INTRA_42_CLIENT_ID = os.environ.get('INTRA_42_CLIENT_ID', '')
+INTRA_42_CLIENT_SECRET = os.environ.get('INTRA_42_CLIENT_SECRET', '')
+INTRA_42_REDIRECT_URI = os.environ.get(
+    'INTRA_42_REDIRECT_URI',
+    'http://localhost:8000/api/v1/auth/42/callback/',
+)
 INTRA_42_AUTHORIZE_URL = 'https://api.intra.42.fr/oauth/authorize'
 INTRA_42_TOKEN_URL = 'https://api.intra.42.fr/oauth/token'
 INTRA_42_USER_URL = 'https://api.intra.42.fr/v2/me'
 
-ADMIN_42_LOGIN = getattr(settings, 'ADMIN_42_LOGIN', '')
+ADMIN_42_LOGIN = os.environ.get('ADMIN_42_LOGIN', '')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 
 
@@ -69,9 +70,6 @@ class OAuth42CallbackView(APIView):
     3. Creates or retrieves the local User record.
     4. Assigns LOGISTICS_STAFF role if login matches ADMIN_42_LOGIN.
     5. Issues a JWT pair (access + refresh) and returns it with the user profile.
-
-    The frontend is responsible for storing the tokens in localStorage and
-    redirecting the user based on their role and station.
     """
     permission_classes = [AllowAny]
 

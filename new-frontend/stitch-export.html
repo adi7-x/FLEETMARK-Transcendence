@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fleetmark | Night Shuttle Reserved</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-lowest": "#000000",
+                        "on-primary-fixed-variant": "#0057bd",
+                        "inverse-primary": "#005bc4",
+                        "primary-fixed-dim": "#c3d4ff",
+                        "surface-container": "#191a1a",
+                        "tertiary-fixed": "#6bff8f",
+                        "secondary-fixed": "#e3e2e2",
+                        "error-container": "#7f2927",
+                        "surface": "#0e0e0e",
+                        "on-secondary-fixed": "#3f3f40",
+                        "surface-dim": "#0e0e0e",
+                        "secondary": "#9e9e9e",
+                        "on-tertiary-container": "#005f28",
+                        "on-tertiary-fixed-variant": "#006a2d",
+                        "secondary-container": "#3b3b3c",
+                        "secondary-dim": "#9e9e9e",
+                        "inverse-on-surface": "#565554",
+                        "secondary-fixed-dim": "#d5d4d4",
+                        "surface-bright": "#2c2c2c",
+                        "primary-dim": "#98b8ff",
+                        "on-error": "#490106",
+                        "on-secondary-container": "#c0bfbf",
+                        "on-primary-fixed": "#003c86",
+                        "primary-container": "#004395",
+                        "on-background": "#e7e5e4",
+                        "surface-container-low": "#131313",
+                        "on-tertiary": "#00692c",
+                        "on-tertiary-fixed": "#004a1d",
+                        "on-secondary": "#1f2020",
+                        "tertiary-container": "#6bff8f",
+                        "error-dim": "#bb5551",
+                        "on-secondary-fixed-variant": "#5b5b5c",
+                        "surface-tint": "#adc6ff",
+                        "inverse-surface": "#fcf8f8",
+                        "on-surface": "#e7e5e4",
+                        "on-primary": "#003d88",
+                        "primary": "#adc6ff",
+                        "surface-variant": "#252626",
+                        "background": "#0e0e0e",
+                        "outline": "#767575",
+                        "tertiary-fixed-dim": "#5bf083",
+                        "surface-container-highest": "#252626",
+                        "on-surface-variant": "#acabaa",
+                        "tertiary-dim": "#5bf083",
+                        "error": "#ee7d77",
+                        "surface-container-high": "#1f2020",
+                        "outline-variant": "#484848",
+                        "on-error-container": "#ff9993",
+                        "primary-fixed": "#d8e2ff",
+                        "tertiary": "#c5ffc9",
+                        "on-primary-container": "#bdd0ff"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+            color: #e7e5e4;
+            font-family: 'Inter', sans-serif;
+        }
+        .grid-bg {
+            background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .text-glow {
+            text-shadow: 0 0 30px rgba(173, 198, 255, 0.3);
+        }
+        .blue-gradient-text {
+            background: linear-gradient(to right, #ffffff, #adc6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hairline-border {
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center h-[56px] px-6 bg-black/60 backdrop-blur-xl border-b border-white/10">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-white font-['Inter']">Fleetmark</span>
+<div class="hidden md:flex items-center gap-6 font-['Inter'] tracking-tight text-sm">
+<a class="text-gray-400 hover:text-blue-400 transition-colors" href="#">How it works</a>
+<a class="text-gray-400 hover:text-blue-400 transition-colors" href="#">Schedule</a>
+<a class="text-gray-400 hover:text-blue-400 transition-colors" href="#">Team</a>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-lg text-sm font-semibold hover:opacity-80 transition-opacity">Sign in</button>
+</nav>
+<main class="max-w-[1080px] mx-auto px-6">
+<!-- Hero Section -->
+<section class="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 grid-bg">
+<div class="absolute inset-0 bg-radial-gradient from-primary/5 to-transparent pointer-events-none"></div>
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-primary-container/20 border border-primary/20 rounded-full mb-8">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-xs font-mono text-primary font-bold">42 ACTIVE NODES</span>
+</div>
+<h1 class="text-[80px] font-bold leading-[1.0] tracking-[-0.05em] text-center mb-6">
+                Night shuttle.<br/>
+<span class="blue-gradient-text">Reserved.</span>
+</h1>
+<p class="max-w-xl text-center text-on-surface-variant text-lg leading-relaxed mb-10">
+                Surgical precision for the high-stakes commute. A premium orbital monolith for the nocturnal workforce. High contrast, zero latency.
+            </p>
+<div class="flex gap-4">
+<button class="bg-primary text-on-primary px-8 py-4 rounded-lg font-bold hover:scale-[0.98] transition-all">Book Now</button>
+<button class="bg-surface-container-high text-on-surface hairline-border px-8 py-4 rounded-lg font-bold hover:bg-surface-container-highest transition-all">View Logs</button>
+</div>
+</section>
+<!-- How It Works -->
+<section class="py-24 grid md:grid-cols-2 gap-16 items-start">
+<div>
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-primary mb-4 block">Process</span>
+<h2 class="text-4xl font-bold mb-12 tracking-tight">The Neural Link.</h2>
+<div class="space-y-12">
+<div class="flex gap-6">
+<span class="font-mono text-primary text-xl font-bold">01</span>
+<div>
+<h3 class="text-lg font-bold mb-2">Initialize Protocol</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">Secure your identification through our encrypted authentication layer.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<span class="font-mono text-primary text-xl font-bold">02</span>
+<div>
+<h3 class="text-lg font-bold mb-2">Select Vector</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">Define your departure node and terminal destination with 5-minute precision.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<span class="font-mono text-primary text-xl font-bold">03</span>
+<div>
+<h3 class="text-lg font-bold mb-2">Confirm Slot</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">System validates fleet availability and locks your tactical reservation.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<span class="font-mono text-primary text-xl font-bold">04</span>
+<div>
+<h3 class="text-lg font-bold mb-2">Board Vessel</h3>
+<p class="text-on-surface-variant text-sm leading-relaxed">Access the monolith via mobile terminal biometric verification.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary/20 to-transparent blur-2xl group-hover:opacity-100 transition duration-1000"></div>
+<div class="relative bg-surface-container-low rounded-xl hairline-border overflow-hidden shadow-2xl">
+<div class="h-8 bg-surface-container flex items-center px-4 gap-1.5 border-b border-white/5">
+<div class="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+</div>
+<div class="p-8 aspect-square flex flex-col justify-center items-center text-center">
+<img class="rounded-lg opacity-80 group-hover:opacity-100 transition-opacity mb-6" data-alt="Abstract interface of a flight booking system with high contrast" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNaonIicsZFRsDPRYeAqb14Yyq3HRaiJoUQvxBQWIrEJkxSyaYacBhYgpoulqCcQbUhT4ulRYSf8P9KG-vs1sL7J8aE7vVCKjT5rX4uRVvKS-hRvSIAOi0AZQmQIUF8i3ujLzl9zcW-uyxOaEj_kned91y6_OLwIQn5CGVcQ8_p5_yAKwNYHwSxjMVMmxJ0j4ANloBzxAvI_pDQByyrblrmc5WNhe8akfb__8Cc_C8D-g1_0BTdnmi0QcIS_lKtKr9GE6VeGynoSH3"/>
+<div class="font-mono text-xs text-primary bg-primary/10 px-4 py-2 rounded-lg">SYSTEM_READY_V2.0.4</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Schedule Section -->
+<section class="py-24 border-t border-white/5">
+<div class="grid md:grid-cols-2 gap-8 mb-16 items-end">
+<div>
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-primary mb-4 block">Operational Windows</span>
+<h2 class="text-4xl font-bold tracking-tight">System Availability.</h2>
+</div>
+<p class="text-on-surface-variant text-sm leading-relaxed max-w-sm">
+                    Fleet cycles are optimized for orbital resonance. All timestamps are synchronized to UTC-5 Precision.
+                </p>
+</div>
+<div class="grid md:grid-cols-3 gap-6">
+<!-- Peak -->
+<div class="p-8 bg-surface-container-low hairline-border rounded-xl group hover:bg-surface-container transition-colors">
+<div class="flex justify-between items-start mb-12">
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-primary">Peak Phase</span>
+<span class="material-symbols-outlined text-primary">bolt</span>
+</div>
+<div class="font-mono text-3xl font-bold text-white mb-2">20:00 — 23:30</div>
+<p class="text-on-surface-variant text-sm">Full fleet mobilization. 10-minute intervals.</p>
+</div>
+<!-- Transition -->
+<div class="p-8 bg-surface-container-low hairline-border rounded-xl group hover:bg-surface-container transition-colors">
+<div class="flex justify-between items-start mb-12">
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-secondary">Transition</span>
+<span class="material-symbols-outlined text-secondary">update</span>
+</div>
+<div class="font-mono text-3xl font-bold text-white mb-2">23:30 — 02:00</div>
+<p class="text-on-surface-variant text-sm">Optimized routing. 20-minute intervals.</p>
+</div>
+<!-- Late Night -->
+<div class="p-8 bg-surface-container-low hairline-border rounded-xl group hover:bg-surface-container transition-colors">
+<div class="flex justify-between items-start mb-12">
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-purple-400">Deep Orbit</span>
+<span class="material-symbols-outlined text-purple-400">dark_mode</span>
+</div>
+<div class="font-mono text-3xl font-bold text-white mb-2">02:00 — 05:00</div>
+<p class="text-on-surface-variant text-sm">On-demand availability. Tactical response.</p>
+</div>
+</div>
+</section>
+<!-- Team Carousel -->
+<section class="py-24">
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-primary mb-4 block">Command Center</span>
+<h2 class="text-4xl font-bold mb-16 tracking-tight">The Architects.</h2>
+<div class="flex gap-6 overflow-hidden pb-12">
+<!-- Team Card 1 -->
+<div class="relative min-w-[320px] aspect-[4/5] bg-surface-container rounded-xl overflow-hidden group">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Portrait of a male tech executive with a neutral expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCY9zzfjGPozPB4Z62H3gN8dZTSmpS5Ey4eSzOB2q-9XB0jEc7191MxfcFf1FfhmTHjghCnEMCOmRrkYIVVvHOgvbgS6b-SsG0uSx5-tQMyTT-Wo6K7iv9uGS00adW_noMzXzbthsTtnLirzYmGG4A6-PSh5Q-t1-O-n0eYZdN1YDgCEk4sepzuMMt59IdMGutG51COkugrB1V8ioQSA5HQH8M7BtM6cGFfNhs9pOQsaEI0_oZpKE2D1FtNITVRvHQb-BSS4Q1cUOYU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
+<div class="absolute bottom-0 left-0 p-8 w-full translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-[10px] font-mono text-tertiary uppercase">Active</span>
+</div>
+<h4 class="text-xl font-bold text-white mb-1">Marcus Thorne</h4>
+<p class="text-sm text-on-surface-variant mb-4">Lead Systems Architect</p>
+<div class="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity delay-100">
+<span class="text-[10px] font-mono text-primary">RUST</span>
+<span class="text-[10px] font-mono text-primary">KUBERNETES</span>
+</div>
+</div>
+</div>
+<!-- Team Card 2 -->
+<div class="relative min-w-[320px] aspect-[4/5] bg-surface-container rounded-xl overflow-hidden group">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Portrait of a female engineer looking professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDN1NFfBF6C5Xjmb6lvmNGOLIw_mVV2sh-Hzw5T_z3ATNLJI27n3uACOrDXw3px-L1k4MsVQv3Egazc78Nn_4HltyHDF-vno99iedgnzNHI62a5MKzsxjbaKujVxY5bxI2Kab7JL-Iq5xnsrGytnsCHB8KSk3o_cN8ZrIX1DIx0TAe33fQVTOFJoJZaN0Lz-ebkZSfBv-LhHcvXr0OAP6jSCjiRWDHa337eMya4jMzRjeZF-cuotremJDZO8Iz38fodWwlMlCzwBp1t"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
+<div class="absolute bottom-0 left-0 p-8 w-full translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-[10px] font-mono text-tertiary uppercase">Active</span>
+</div>
+<h4 class="text-xl font-bold text-white mb-1">Elena Vance</h4>
+<p class="text-sm text-on-surface-variant mb-4">Operations Director</p>
+<div class="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity delay-100">
+<span class="text-[10px] font-mono text-primary">LOGISTICS</span>
+<span class="text-[10px] font-mono text-primary">PROTOCOLS</span>
+</div>
+</div>
+</div>
+<!-- Team Card 3 -->
+<div class="relative min-w-[320px] aspect-[4/5] bg-surface-container rounded-xl overflow-hidden group">
+<img class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Portrait of a developer in a dark room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrGXBxwg2BOYtZl80Drh8Gg64UCj8RVHh6m5eR-yr-xWTV9u3DmGPVA0zsnzoOvee26B-1suJB40FUFRQhXK5C1A9xA2BfsG3gCoPgQFy4YGvna7hY-7nH60VORV8LhMd4g9L6K8EVAuDqyOtZO5EffFshECyV-KCAmaT8h2Z8spGYnu7dlMq4-zlvxEWGuewML4K9lTZdQMNpuOlvFfTKKitluydg8CXzSzyT2xrH69pnHJxFVTTZjBoFYcxywlDeu0DXYu2TS4PD"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
+<div class="absolute bottom-0 left-0 p-8 w-full translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
+<div class="flex items-center gap-2 mb-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-[10px] font-mono text-tertiary uppercase">Active</span>
+</div>
+<h4 class="text-xl font-bold text-white mb-1">Silas Koda</h4>
+<p class="text-sm text-on-surface-variant mb-4">Backend Developer</p>
+<div class="flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity delay-100">
+<span class="text-[10px] font-mono text-primary">PYTHON</span>
+<span class="text-[10px] font-mono text-primary">ELIXIR</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Get Started / Auth Section -->
+<section class="py-24 grid md:grid-cols-2 gap-24 items-center">
+<div>
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-primary mb-4 block">Next Steps</span>
+<h2 class="text-4xl font-bold mb-8 tracking-tight">Establish Connection.</h2>
+<ul class="space-y-6">
+<li class="flex items-start gap-4">
+<span class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20 mt-1">1</span>
+<p class="text-on-surface-variant text-sm">Create your personal identity profile within the Fleetmark ecosystem.</p>
+</li>
+<li class="flex items-start gap-4">
+<span class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20 mt-1">2</span>
+<p class="text-on-surface-variant text-sm">Verify your node affiliation to unlock access levels.</p>
+</li>
+<li class="flex items-start gap-4">
+<span class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary border border-primary/20 mt-1">3</span>
+<p class="text-on-surface-variant text-sm">Begin scheduling with real-time telemetry tracking.</p>
+</li>
+</ul>
+</div>
+<div class="bg-white rounded-2xl p-10 shadow-[0_32px_64px_rgba(0,0,0,0.5)] flex flex-col items-center">
+<div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center mb-8">
+<span class="text-white font-bold text-2xl">42</span>
+</div>
+<h3 class="text-black text-xl font-bold mb-2">Access Portal</h3>
+<p class="text-gray-500 text-sm mb-8 text-center">Log in to your terminal to continue.</p>
+<div class="w-full space-y-4">
+<div class="space-y-1">
+<label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Email Address</label>
+<input class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-black text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all" type="email"/>
+</div>
+<button class="w-full bg-[#004395] text-white py-3 rounded-lg font-bold hover:bg-[#003c86] transition-colors">Continue with Fleetmark</button>
+<div class="relative flex py-4 items-center">
+<div class="flex-grow border-t border-gray-100"></div>
+<span class="flex-shrink mx-4 text-gray-400 text-[10px] font-bold uppercase tracking-widest">or</span>
+<div class="flex-grow border-t border-gray-100"></div>
+</div>
+<button class="w-full border border-gray-200 text-gray-600 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
+<span class="material-symbols-outlined text-lg">passkey</span>
+                        Use Passkey
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="max-w-[1080px] mx-auto px-6 py-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex flex-col items-center md:items-start gap-2">
+<span class="text-xl font-bold tracking-tighter text-white">Fleetmark</span>
+<p class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Nocturnal Logistics Systems. Precision Engineered.</p>
+</div>
+<div class="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+            © 2024 FLEETMARK CORP. ALL RIGHTS RESERVED.
+        </div>
+</footer>
+</body></html>

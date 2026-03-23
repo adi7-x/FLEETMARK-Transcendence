@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fleetmark | Student Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-container-lowest": "#000000",
+              "on-primary-fixed-variant": "#0057bd",
+              "inverse-primary": "#005bc4",
+              "primary-fixed-dim": "#c3d4ff",
+              "surface-container": "#191a1a",
+              "tertiary-fixed": "#6bff8f",
+              "secondary-fixed": "#e3e2e2",
+              "error-container": "#7f2927",
+              "surface": "#0e0e0e",
+              "on-secondary-fixed": "#3f3f40",
+              "surface-dim": "#0e0e0e",
+              "secondary": "#9e9e9e",
+              "on-tertiary-container": "#005f28",
+              "on-tertiary-fixed-variant": "#006a2d",
+              "secondary-container": "#3b3b3c",
+              "secondary-dim": "#9e9e9e",
+              "inverse-on-surface": "#565554",
+              "secondary-fixed-dim": "#d5d4d4",
+              "surface-bright": "#2c2c2c",
+              "primary-dim": "#98b8ff",
+              "on-error": "#490106",
+              "on-secondary-container": "#c0bfbf",
+              "on-primary-fixed": "#003c86",
+              "primary-container": "#004395",
+              "on-background": "#e7e5e4",
+              "surface-container-low": "#131313",
+              "on-tertiary": "#00692c",
+              "on-tertiary-fixed": "#004a1d",
+              "on-secondary": "#1f2020",
+              "tertiary-container": "#6bff8f",
+              "error-dim": "#bb5551",
+              "on-secondary-fixed-variant": "#5b5b5c",
+              "surface-tint": "#adc6ff",
+              "inverse-surface": "#fcf8f8",
+              "on-surface": "#e7e5e4",
+              "on-primary": "#003d88",
+              "primary": "#adc6ff",
+              "surface-variant": "#252626",
+              "background": "#0e0e0e",
+              "outline": "#767575",
+              "tertiary-fixed-dim": "#5bf083",
+              "surface-container-highest": "#252626",
+              "on-surface-variant": "#acabaa",
+              "tertiary-dim": "#5bf083",
+              "error": "#ee7d77",
+              "surface-container-high": "#1f2020",
+              "outline-variant": "#484848",
+              "on-error-container": "#ff9993",
+              "primary-fixed": "#d8e2ff",
+              "tertiary": "#c5ffc9",
+              "on-primary-container": "#bdd0ff"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #000000; color: #e7e5e4; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .mono-text { font-family: 'JetBrains Mono', monospace; }
+        .ghost-border { outline: 1px solid rgba(72, 72, 72, 0.15); }
+    </style>
+</head>
+<body class="bg-surface-container-lowest selection:bg-primary selection:text-on-primary">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-[220px] bg-[#131313] flex flex-col py-6 px-4 space-y-8 z-50">
+<div class="flex flex-col space-y-1">
+<span class="text-lg font-bold text-white tracking-tighter">Fleetmark</span>
+<span class="font-mono text-[10px] text-gray-500 uppercase tracking-widest">1337 Shuttle System</span>
+</div>
+<nav class="flex-1 flex flex-col space-y-1">
+<!-- Dashboard Active -->
+<a class="flex items-center space-x-3 py-2 px-3 bg-[#191a1a] text-blue-400 border-l-2 border-blue-500 transition-all duration-150 scale-[0.98]" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Dashboard</span>
+</a>
+<a class="flex items-center space-x-3 py-2 px-3 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">map</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Live Map</span>
+</a>
+<a class="flex items-center space-x-3 py-2 px-3 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">event_seat</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Bookings</span>
+</a>
+<a class="flex items-center space-x-3 py-2 px-3 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">History</span>
+</a>
+<a class="flex items-center space-x-3 py-2 px-3 text-gray-500 hover:text-gray-200 hover:bg-[#1f2020] transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Settings</span>
+</a>
+</nav>
+<div class="pt-6 border-t border-white/[0.05] space-y-4">
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-[7px] text-[11px] uppercase tracking-[0.1em] font-bold hover:opacity-90 transition-opacity">
+                New Booking
+            </button>
+<a class="flex items-center space-x-3 py-2 px-3 text-gray-500 hover:text-gray-200 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span class="text-[11px] uppercase tracking-[0.1em] font-bold">Log Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[220px] min-h-screen bg-surface-container-lowest">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center h-[56px] px-8 border-b border-white/[0.07] sticky top-0 bg-surface-container-lowest/80 backdrop-blur-xl z-40">
+<div class="flex items-center space-x-6">
+<h1 class="font-headline font-bold text-2xl text-white">Student Dashboard</h1>
+<div class="flex items-center bg-surface-container-low px-3 py-1 rounded-full border border-outline-variant/15">
+<span class="material-symbols-outlined text-[14px] text-tertiary mr-2" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-tighter">North Campus Station</span>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<button class="p-2 text-gray-500 hover:bg-white/5 rounded-full transition-all active:scale-95">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+<button class="p-2 text-gray-500 hover:bg-white/5 rounded-full transition-all active:scale-95 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full"></span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden ml-2 border border-outline-variant/20">
+<img class="w-full h-full object-cover" data-alt="User profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDm97LD9H33IgS7_1_zar8M3J4g4Zsh16MuSeGUxONMH-kCRCvFU-dVvSF1eNLbn4vfGtLgRRbpw5EOQRZRRUbRmXXd2Am1mQaCM0fm2jdVJDkPkmChjKB3hojkWAUqT6hRrRZyNWvAcvBE2JuZVA6tzTNnzIM3L2TakA4hEssJPmJ84A4CejOjTmaEgipfqux8-fUuk7mfU_sSdGZU8k2dFXC3mCFF8YQwAolaObYJ1DOHs_QGDivc21rWT0opj1zaMawicDYP9Pk"/>
+</div>
+</div>
+</header>
+<div class="p-8 max-w-6xl mx-auto space-y-12">
+<!-- Hero Card: Orbital Monolith Style -->
+<section class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary/10 to-transparent blur-2xl opacity-50"></div>
+<div class="relative bg-surface-container border border-outline-variant/10 rounded-lg overflow-hidden grid grid-cols-1 md:grid-cols-12">
+<div class="md:col-span-8 p-10 flex flex-col justify-between space-y-8">
+<div>
+<span class="text-[11px] font-bold uppercase tracking-[0.2em] text-primary mb-2 block">Tonight</span>
+<h2 class="text-4xl md:text-5xl font-bold tracking-tighter text-white mb-2 leading-none">Downtown Express</h2>
+<p class="text-on-surface-variant text-sm max-w-md">The 13:37 High-speed loop servicing all major residential hubs.</p>
+</div>
+<div class="flex items-baseline space-x-4">
+<span class="mono-text text-7xl font-bold text-white tracking-tighter">22:45</span>
+<span class="mono-text text-sm text-tertiary uppercase tracking-widest flex items-center">
+<span class="w-2 h-2 bg-tertiary rounded-full mr-2 animate-pulse"></span>
+                                In Transit
+                            </span>
+</div>
+<div class="flex items-center space-x-8 pt-4 border-t border-white/[0.05]">
+<div>
+<span class="text-[10px] uppercase font-bold text-gray-500 block mb-1">Seats Left</span>
+<span class="mono-text text-lg text-white">12/48</span>
+</div>
+<div>
+<span class="text-[10px] uppercase font-bold text-gray-500 block mb-1">Bus Name</span>
+<span class="mono-text text-lg text-white">APOLLO-9</span>
+</div>
+<div>
+<span class="text-[10px] uppercase font-bold text-gray-500 block mb-1">Stops</span>
+<span class="mono-text text-lg text-white">04</span>
+</div>
+</div>
+</div>
+<div class="md:col-span-4 bg-surface-container-high p-8 flex flex-col justify-center items-center text-center space-y-6 border-l border-white/[0.05]">
+<div class="w-full aspect-square bg-surface-container-lowest rounded-lg overflow-hidden ghost-border relative">
+<img class="w-full h-full object-cover opacity-50 grayscale contrast-125" data-alt="Abstract nocturnal city map view" data-location="Chicago" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-Dv2bU_4OTiqq-C1wku4N_-UNy9URhH3lgsI3mW7wi5QwKMw2vjPoh5VG41BuGvUfX8i8lUjpUyejOs6SlMeQdD6-F9_3r0lYLbfkwl0pWD0yTkFRZUxfGpHHmGpV24b7Ng4OaCq9uj1v1MKMB7L8BBtu71Dsr_hkto1YDZiW5bPIsaLc2kqeRGRUYNXk6tnYGchDjqf3ipvCIL-9FkHuq7HefYyylgQjmjZ3ER41HyTpU5wGNu4QteF9WxjOJrdBAMf7mD9MsqM5"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-high via-transparent to-transparent"></div>
+</div>
+<button class="w-full bg-primary text-on-primary py-4 rounded-lg font-bold tracking-tight hover:opacity-90 transition-all active:scale-95">
+                            Reserve Now
+                        </button>
+</div>
+</div>
+</section>
+<!-- Stat Cards -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Stat 1 -->
+<div class="bg-surface-container-low p-6 rounded-lg ghost-border hover:bg-surface-container transition-colors">
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 mb-4 block">My Stop</span>
+<div class="flex flex-col">
+<span class="text-xl font-bold text-white mb-1">Science Hall</span>
+<span class="mono-text text-sm text-on-surface-variant uppercase">ZONE-B4</span>
+</div>
+</div>
+<!-- Stat 2 -->
+<div class="bg-surface-container-low p-6 rounded-lg ghost-border hover:bg-surface-container transition-colors">
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 mb-4 block">This Month</span>
+<div class="flex items-baseline space-x-2">
+<span class="mono-text text-4xl font-bold text-white">24</span>
+<span class="text-[11px] font-bold text-tertiary">+12% vs last</span>
+</div>
+</div>
+<!-- Stat 3 -->
+<div class="bg-surface-container-low p-6 rounded-lg ghost-border hover:bg-surface-container transition-colors">
+<span class="text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 mb-4 block">Total Rides</span>
+<div class="flex items-baseline space-x-2">
+<span class="mono-text text-4xl font-bold text-white">142</span>
+<span class="mono-text text-xs text-on-surface-variant">LIFETIME</span>
+</div>
+</div>
+</section>
+<!-- Recent Activity -->
+<section class="space-y-6">
+<div class="flex justify-between items-end">
+<h3 class="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">Recent Activity</h3>
+<a class="text-[11px] font-bold uppercase tracking-[0.1em] text-primary hover:underline" href="#">View History</a>
+</div>
+<div class="space-y-3">
+<!-- Row 1 -->
+<div class="group flex items-center justify-between p-4 rounded-lg bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer">
+<div class="flex items-center space-x-4">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">directions_bus</span>
+</div>
+<div>
+<p class="text-sm font-bold text-white">Campus Loop to Union Square</p>
+<p class="mono-text text-[10px] text-gray-500 uppercase">Oct 12 • 18:30 • BUS-722</p>
+</div>
+</div>
+<div class="text-right">
+<span class="mono-text text-xs text-tertiary">COMPLETED</span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="group flex items-center justify-between p-4 rounded-lg bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer">
+<div class="flex items-center space-x-4">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">directions_bus</span>
+</div>
+<div>
+<p class="text-sm font-bold text-white">Late Night Shuttle</p>
+<p class="mono-text text-[10px] text-gray-500 uppercase">Oct 11 • 23:15 • APOLLO-9</p>
+</div>
+</div>
+<div class="text-right">
+<span class="mono-text text-xs text-tertiary">COMPLETED</span>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="group flex items-center justify-between p-4 rounded-lg bg-surface-container-low hover:bg-surface-container transition-all cursor-pointer">
+<div class="flex items-center space-x-4">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">payments</span>
+</div>
+<div>
+<p class="text-sm font-bold text-white">Auto-Refill: Monthly Pass</p>
+<p class="mono-text text-[10px] text-gray-500 uppercase">Oct 10 • 09:00 • VISA-4242</p>
+</div>
+</div>
+<div class="text-right">
+<span class="mono-text text-xs text-on-surface-variant">$45.00</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Contextual FAB - Restricted to Dashboard -->
+<button class="fixed bottom-8 right-8 bg-primary text-on-primary w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-primary/20 hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</body></html>

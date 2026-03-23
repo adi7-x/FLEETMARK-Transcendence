@@ -49,7 +49,8 @@ const copy = {
       {
         bar: "var(--blue)",
         label: "PEAK HOURS",
-        time: "21:00 → Midnight",
+        time: "20:00 → 23:30",
+        icon: "bolt",
         cardTitle: "Peak Hours — Split Routes",
         desc: "Two buses on separate routes for peak traffic.",
         tags: ["🚌 Bus 1 — Route A", "🚌 Bus 2 — Route B"],
@@ -57,7 +58,8 @@ const copy = {
       {
         bar: "var(--mid)",
         label: "TRANSITION",
-        time: "12:00 AM → 1:00 AM",
+        time: "23:30 → 02:00",
+        icon: "update",
         cardTitle: "Transition Window",
         desc: "Both buses serve all major stops.",
         tags: ["🔄 Both buses", "Full coverage"],
@@ -65,7 +67,8 @@ const copy = {
       {
         bar: "var(--orbit)",
         label: "LATE NIGHT",
-        time: "3:00 AM → 6:00 AM",
+        time: "02:00 → 05:00",
+        icon: "dark_mode",
         cardTitle: "Late Night — Consolidated Run",
         desc: "One bus covers all stops for late students.",
         tags: ["🚌 1 bus", "All stops served"],
@@ -492,6 +495,9 @@ export default function Landing() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 8 }}>
                     <span className="mono" style={{ color: block.bar, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700 }}>
                       {block.label}
+                    </span>
+                    <span className="material-symbols-outlined" style={{ color: block.bar, fontSize: 20, fontVariationSettings: "'FILL' 1" }}>
+                      {block.icon}
                     </span>
                   </div>
                   <div className="mono" style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "var(--hero-gradient-start)" }}>

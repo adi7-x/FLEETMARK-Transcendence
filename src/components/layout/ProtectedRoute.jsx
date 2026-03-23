@@ -1,4 +1,5 @@
 import React from "react";
+import { Navigate } from "react-router-dom";
 
 function roleHome(role) {
   if (role === "LOGISTICS_STAFF") return "/admin";
@@ -8,13 +9,11 @@ function roleHome(role) {
 
 export default function ProtectedRoute({ role, user, children }) {
   if (!user) {
-    window.location.replace("/");
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   if (role && user.role !== role) {
-    window.location.replace(roleHome(user.role));
-    return null;
+    return <Navigate to={roleHome(user.role)} replace />;
   }
 
   return children;

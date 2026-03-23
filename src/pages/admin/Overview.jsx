@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Spinner from "../../components/ui/Spinner";
 import EmptyState from "../../components/ui/EmptyState";
+import { API_BASE } from "../../services/api";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
 
 export default function Overview() {
   const [trips, setTrips] = useState([]);

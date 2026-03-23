@@ -21,13 +21,19 @@ export default function Settings() {
   return (
     <div style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
       <h1 style={{ margin: 0 }}>Admin Settings</h1>
+      <p style={{ color: "var(--mid)", margin: "0 0 var(--space-2) 0" }}>System-wide configurations. (Changes require version 2.0 backend updates).</p>
       {rows.map((row) => (
-        <div key={row.key} style={{ borderTop: "1px solid var(--line2)", paddingTop: "var(--space-4)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)" }}>
+        <div key={row.key} style={{ borderTop: "1px solid var(--line2)", paddingTop: "var(--space-4)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", opacity: 0.6 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 16 }}>{row.label}</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h3 style={{ margin: 0, fontSize: 16 }}>{row.label}</h3>
+              <span className="mono" style={{ fontSize: 10, background: "var(--surface2)", padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>Coming soon</span>
+            </div>
             <p style={{ margin: "var(--space-2) 0 0", color: "var(--mid)", fontSize: 14 }}>{row.help}</p>
           </div>
-          <Toggle checked={flags[row.key]} onChange={() => setFlag(row.key)} />
+          <div style={{ pointerEvents: "none" }}>
+            <Toggle checked={flags[row.key]} onChange={() => setFlag(row.key)} />
+          </div>
         </div>
       ))}
     </div>

@@ -1,13 +1,15 @@
 import React from "react";
+import { useTranslation } from "../../context/TranslationContext";
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard", path: "/admin", icon: "dashboard" },
-  { id: "trips", label: "Trips", path: "/admin/trips", icon: "event_seat" },
-  { id: "buses", label: "Buses", path: "/admin/buses", icon: "directions_bus" },
-  { id: "routes", label: "Routes", path: "/admin/routes", icon: "map" },
-  { id: "drivers", label: "Drivers", path: "/admin/drivers", icon: "person" },
-  { id: "history", label: "History", path: "/admin/reservations", icon: "history" },
-  { id: "settings", label: "Settings", path: "/admin/settings", icon: "settings" },
+  { id: "dashboard", labelKey: "navDashboard", path: "/admin", icon: "dashboard" },
+  { id: "trips", labelKey: "navTrips", path: "/admin/trips", icon: "event_seat" },
+  { id: "buses", labelKey: "navBuses", path: "/admin/buses", icon: "directions_bus" },
+  { id: "routes", labelKey: "navRoutes", path: "/admin/routes", icon: "map" },
+  { id: "drivers", labelKey: "navDrivers", path: "/admin/drivers", icon: "person" },
+  { id: "history", labelKey: "navHistory", path: "/admin/reservations", icon: "history" },
+  { id: "reports", labelKey: "navReports", path: "/admin/reports", icon: "analytics" },
+  { id: "settings", labelKey: "navSettings", path: "/admin/settings", icon: "settings" },
 ];
 
 export default function AdminLayout({
@@ -18,6 +20,7 @@ export default function AdminLayout({
   children,
   pageTitle = "Trips Management",
 }) {
+  const { t } = useTranslation();
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
       <aside
@@ -68,7 +71,7 @@ export default function AdminLayout({
                   {item.icon}
                 </span>
                 <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </span>
               </button>
             );
@@ -89,7 +92,7 @@ export default function AdminLayout({
             cursor: "pointer",
           }}
         >
-          <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>Log Out</span>
+          <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>{t("navLogout")}</span>
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
             logout
           </span>
@@ -138,7 +141,7 @@ export default function AdminLayout({
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                 add
               </span>
-              New Trip
+              {t("navNewTrip")}
             </button>
           </div>
         </header>

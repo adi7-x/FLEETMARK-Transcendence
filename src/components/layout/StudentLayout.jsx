@@ -1,11 +1,12 @@
 import React from "react";
+import { useTranslation } from "../../context/TranslationContext";
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard", path: "/passenger", icon: "dashboard" },
-  { id: "map", label: "Live Map", path: "/passenger/reserve", icon: "map" },
-  { id: "bookings", label: "Bookings", path: "/passenger/reserve", icon: "event_seat" },
-  { id: "history", label: "History", path: "/passenger/history", icon: "history" },
-  { id: "settings", label: "Settings", path: "/passenger/settings", icon: "settings" },
+  { id: "dashboard", labelKey: "navDashboard", path: "/passenger", icon: "dashboard" },
+  { id: "map", labelKey: "navLiveMap", path: "/passenger/map", icon: "map" },
+  { id: "bookings", labelKey: "navBookings", path: "/passenger/reserve", icon: "event_seat" },
+  { id: "history", labelKey: "navHistory", path: "/passenger/history", icon: "history" },
+  { id: "settings", labelKey: "navSettings", path: "/passenger/settings", icon: "settings" },
 ];
 
 export default function StudentLayout({
@@ -18,6 +19,7 @@ export default function StudentLayout({
 }) {
   const stationName = user?.station_name || "No Station";
   const login = user?.login_42 || "student";
+  const { t } = useTranslation();
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
@@ -70,7 +72,7 @@ export default function StudentLayout({
                   {item.icon}
                 </span>
                 <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </span>
               </button>
             );
@@ -94,10 +96,12 @@ export default function StudentLayout({
               cursor: "pointer",
             }}
           >
-            New Booking
+            {t("navNewBooking")}
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line2)" }} />
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line2)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "var(--ink2)" }}>
+              {login[0].toUpperCase()}
+            </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 700 }}>{login}</div>
             </div>
@@ -123,7 +127,7 @@ export default function StudentLayout({
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
               logout
             </span>
-            Log Out
+            {t("navLogout")}
           </button>
         </div>
       </aside>
@@ -173,7 +177,9 @@ export default function StudentLayout({
               <span className="material-symbols-outlined">notifications</span>
               <span style={{ position: "absolute", right: 8, top: 8, width: 6, height: 6, borderRadius: "50%", background: "var(--blue)" }} />
             </button>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line2)" }} />
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line2)", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "var(--ink2)" }}>
+              {login[0].toUpperCase()}
+            </div>
           </div>
         </header>
 

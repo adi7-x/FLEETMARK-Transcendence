@@ -1,6 +1,7 @@
 // src/services/api.js
 // Base API url (include version, no trailing slash)
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
+export const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
+const API_URL = API_BASE;
 
 // Build absolute endpoint, avoiding duplicate slashes
 const buildUrl = (endpoint) => {
@@ -12,6 +13,77 @@ const buildUrl = (endpoint) => {
 const getAuthHeaders = () => {
   const token = localStorage.getItem('fleetmark_access') || localStorage.getItem('access_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// Logout helper — clear storage and redirect
+const forceLogout = () => {
+  localStorage.removeItem('fleetmark_access');
+  localStorage.removeItem('fleetmark_refresh');
+  localStorage.removeItem('fleetmark_user');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  window.location.replace('/');
+};
+
+// Attempt to refresh the JWT access token
+let refreshPromise = null;
+const tryRefreshToken = async () => {
+  // Deduplicate concurrent refresh attempts
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem('fleetmark_refresh');
+    if (!refreshToken) return false;
+
+    try {
+      const res = await fetch(buildUrl('auth/token/refresh/'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      if (data.access) {
+        localStorage.setItem('fleetmark_access', data.access);
+        if (data.refresh) {
+          localStorage.setItem('fleetmark_refresh', data.refresh);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
+// Fetch wrapper that retries on 401 after refreshing the token
+const fetchWithRefresh = async (url, config) => {
+  let response = await fetch(url, config);
+
+  if (response.status === 401) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      // Rebuild headers with new token
+      const newToken = localStorage.getItem('fleetmark_access');
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${newToken}`,
+      };
+      response = await fetch(url, config);
+    } else {
+      forceLogout();
+      throw new Error('Session expired. Please log in again.');
+    }
+  }
+
+  return response;
 };
 
 // Generic API call function
@@ -27,7 +99,7 @@ const apiCall = async (endpoint, options = {}) => {
   };
 
   try {
-    const response = await fetch(url, config);
+    const response = await fetchWithRefresh(url, config);
     
     // Handle 204 No Content
     if (response.status === 204) {
@@ -54,6 +126,9 @@ const apiCall = async (endpoint, options = {}) => {
 export const auth = {
   // Get OAuth login URL
   getLoginUrl: () => apiCall('auth/42/login/'),
+  
+  // Handle OAuth callback
+  handleCallback: (code) => apiCall(`auth/42/callback/?code=${encodeURIComponent(code)}`),
   
   // Get current user profile
   getProfile: () => apiCall('auth/me/'),
@@ -207,3 +282,10 @@ export const getUserRole = async () => {
     return null;
   }
 };
+export function getUser() {
+  try {
+    return JSON.parse(localStorage.getItem('fleetmark_user') || 'null');
+  } catch {
+    return null;
+  }
+}

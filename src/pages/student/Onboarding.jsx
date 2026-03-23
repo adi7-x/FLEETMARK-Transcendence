@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import StopPicker from "../../components/shared/StopPicker";
 import Spinner from "../../components/ui/Spinner";
+import { API_BASE } from "../../services/api";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
 
 export default function Onboarding() {
   const [selectedStation, setSelectedStation] = useState("");

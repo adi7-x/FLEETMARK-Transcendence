@@ -1,50 +1,215 @@
 import React, { useEffect, useState } from "react";
 import Spinner from "../../components/ui/Spinner";
 import Badge from "../../components/ui/Badge";
+import { API_BASE } from "../../services/api";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
+
+const emptyForm = { name: "", username: "", status: "active" };
 
 export default function Drivers() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const token = localStorage.getItem("fleetmark_access");
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/drivers/`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed to load drivers.");
+      const data = await res.json();
+      setDrivers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Unable to load drivers.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const token = localStorage.getItem("fleetmark_access");
-        const res = await fetch(`${API_BASE}/drivers/`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) throw new Error("Failed to load drivers.");
-        const data = await res.json();
-        if (active) setDrivers(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (active) setError(err.message || "Unable to load drivers.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
     load();
-    return () => {
-      active = false;
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function openCreate() {
+    setEditing(null);
+    setForm(emptyForm);
+    setOpen(true);
+  }
+
+  function openEdit(driver) {
+    setEditing(driver);
+    setForm({
+      name: driver.name || "",
+      username: driver.username || "",
+      status: driver.status || "active",
+    });
+    setOpen(true);
+  }
+
+  async function save() {
+    if (!form.name || !form.username || !form.status) {
+      setError("All fields are required.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const payload = { ...form };
+      const endpoint = editing ? `${API_BASE}/drivers/${editing.id}/` : `${API_BASE}/drivers/`;
+      const method = editing ? "PUT" : "POST";
+      const res = await fetch(endpoint, { method, headers, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.detail || data?.username?.[0] || `Save failed (${res.status}).`);
+      }
+      setOpen(false);
+      await load();
+    } catch (err) {
+      setError(err.message || "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove(id) {
+    try {
+      const res = await fetch(`${API_BASE}/drivers/${id}/`, { method: "DELETE", headers });
+      if (!res.ok) throw new Error("Delete failed.");
+      setConfirmDelete(null);
+      await load();
+    } catch (err) {
+      setError(err.message || "Delete failed.");
+    }
+  }
 
   if (loading) return <Spinner text="Loading drivers..." />;
 
   return (
     <div style={{ display: "grid", gap: "var(--space-4)" }}>
-      <h1 style={{ margin: 0 }}>Drivers</h1>
-      {error ? <p style={{ color: "var(--red)" }}>{error}</p> : null}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ margin: 0 }}>Drivers</h1>
+        <button
+          type="button"
+          onClick={openCreate}
+          style={{
+            border: "1px solid var(--blue-bdr)",
+            background: "var(--blue-bg)",
+            color: "var(--blue)",
+            borderRadius: 7,
+            padding: "8px 14px",
+            fontSize: 14,
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            cursor: "pointer",
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+          New Driver
+        </button>
+      </div>
+
+      {error ? <p style={{ color: "var(--red)", margin: 0 }}>{error}</p> : null}
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "var(--space-4)" }}>
         {drivers.map((driver) => (
-          <article key={driver.id} style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)" }}>
-            <h3 style={{ margin: 0 }}>{driver.name}</h3>
+          <article key={driver.id} style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)", position: "relative" }}>
+            <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6 }}>
+              <button type="button" onClick={() => openEdit(driver)} style={{ border: "none", background: "transparent", color: "var(--mid)", cursor: "pointer", padding: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
+              </button>
+              <button type="button" onClick={() => setConfirmDelete(driver)} style={{ border: "none", background: "transparent", color: "var(--red)", cursor: "pointer", padding: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+              </button>
+            </div>
+            
+            <h3 style={{ margin: 0, paddingRight: 40 }}>{driver.name}</h3>
             <p className="mono" style={{ margin: "var(--space-2) 0", color: "var(--mid)" }}>@{driver.username}</p>
             <Badge variant={driver.status === "active" ? "green" : "dim"}>{driver.status || "unknown"}</Badge>
           </article>
         ))}
+        {!drivers.length ? (
+          <p style={{ color: "var(--mid)" }}>No drivers registered.</p>
+        ) : null}
       </div>
+
+      {/* Create / Edit Modal */}
+      {open ? (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+          <div style={{ width: "min(480px,92vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
+            <h3 style={{ margin: 0 }}>{editing ? "Edit Driver" : "Add New Driver"}</h3>
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <label style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--mid)", fontWeight: 700 }}>Name</label>
+              <input
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                placeholder="e.g. John Doe"
+                style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}
+              />
+            </div>
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <label style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--mid)", fontWeight: 700 }}>Username (@)</label>
+              <input
+                value={form.username}
+                onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                placeholder="e.g. jdoe"
+                style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}
+              />
+            </div>
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <label style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--mid)", fontWeight: 700 }}>Status</label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
+                style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: "var(--space-2)" }}>
+              <button type="button" onClick={() => setOpen(false)} style={{ border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button type="button" onClick={save} disabled={saving} style={{ border: "1px solid var(--blue-bdr)", background: "var(--blue-bg)", color: "var(--blue)", borderRadius: 8, padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDelete ? (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+          <div style={{ width: "min(420px,90vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
+            <h3 style={{ margin: 0 }}>Delete Driver</h3>
+            <p style={{ margin: 0, color: "var(--mid)" }}>
+              Are you sure you want to delete driver <strong>{confirmDelete.name}</strong> (@{confirmDelete.username})?
+              This action cannot be undone.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button type="button" onClick={() => setConfirmDelete(null)} style={{ border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button type="button" onClick={() => remove(confirmDelete.id)} style={{ border: "1px solid color-mix(in srgb, var(--red) 40%, transparent)", background: "var(--red-bg)", color: "var(--red)", borderRadius: 8, padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

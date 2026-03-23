@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 import Spinner from "../components/ui/Spinner";
+import { auth as apiAuth } from "../services/api";
+import { API_BASE } from "../services/api";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
 
 function redirectByRole(user) {
   if (!user) {
@@ -68,10 +69,7 @@ export default function AuthCallback() {
 
         if (!code) throw new Error("Missing OAuth code.");
 
-        const res = await fetch(`${API_BASE}/auth/42/callback/?code=${encodeURIComponent(code)}`);
-        if (!res.ok) throw new Error(`OAuth callback failed (${res.status}).`);
-
-        const data = await res.json();
+        const data = await apiAuth.handleCallback(code);
         const access = data?.access;
         const refresh = data?.refresh;
         const user = data?.user;

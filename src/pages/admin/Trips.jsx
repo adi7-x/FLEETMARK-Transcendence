@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Spinner from "../../components/ui/Spinner";
+import { API_BASE } from "../../services/api";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
 
 const emptyForm = { route: "", bus: "", driver: "", departure_datetime: "" };
 
@@ -70,6 +70,16 @@ export default function Trips() {
     window.addEventListener("fleetmark:new-trip", onNewTrip);
     return () => window.removeEventListener("fleetmark:new-trip", onNewTrip);
   }, []);
+
+  function getCountdown(departureStr) {
+    const ms = new Date(departureStr) - new Date();
+    if (ms < 0) return "Departed";
+    const mins = Math.floor(ms / 60000);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h > 0) return `in ${h}h ${m}m`;
+    return `in ${m}m`;
+  }
 
   function getRowStatus(trip) {
     if (trip.archived_at) return "archived";
@@ -152,6 +162,10 @@ export default function Trips() {
 
   return (
     <div style={{ position: "relative", display: "grid", gap: 26 }}>
+      <style>{`
+        .trip-row .row-actions { opacity: 0; transition: opacity 0.2s; }
+        .trip-row:hover .row-actions { opacity: 1; }
+      `}</style>
       <div style={{ marginBottom: 6 }}>
         <span className="mono" style={{ color: "var(--blue)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.2em", fontWeight: 700 }}>
           System Registry
@@ -213,6 +227,7 @@ export default function Trips() {
             <tr style={{ textAlign: "left", borderBottom: "1px solid color-mix(in srgb, var(--line) 30%, transparent)" }}>
               <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Departure</th>
               <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Route</th>
+              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Bus & Driver</th>
               <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Capacity</th>
               <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Status</th>
               <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "right" }}>Actions</th>
@@ -225,13 +240,20 @@ export default function Trips() {
               const left = Number(trip.seats_left || 0);
               const used = Math.max(0, cap - left);
               const pct = cap ? Math.min(100, Math.round((used / cap) * 100)) : 0;
+              const b = buses.find((item) => item.id === trip.bus);
+              const d = drivers.find((item) => item.id === trip.driver);
               return (
-                <tr key={trip.id} style={{ borderTop: "1px solid color-mix(in srgb, var(--line) 20%, transparent)" }}>
+                <tr key={trip.id} className="trip-row" style={{ borderTop: "1px solid color-mix(in srgb, var(--line) 20%, transparent)" }}>
                   <td style={{ padding: "12px 16px" }}>
-                    <div className="mono" style={{ color: "var(--blue)", fontSize: 14 }}>
-                      {new Date(trip.departure_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div className="mono" style={{ color: "var(--blue)", fontSize: 14 }}>
+                        {new Date(trip.departure_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                      <div className="mono" style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "var(--surface2)", color: "var(--ink2)", fontWeight: 700 }}>
+                        {getCountdown(trip.departure_datetime)}
+                      </div>
                     </div>
-                    <div className="mono" style={{ fontSize: 10, color: "var(--dim)", textTransform: "uppercase" }}>
+                    <div className="mono" style={{ fontSize: 10, color: "var(--dim)", textTransform: "uppercase", marginTop: 4 }}>
                       {new Date(trip.departure_datetime).toLocaleDateString()}
                     </div>
                   </td>
@@ -240,6 +262,10 @@ export default function Trips() {
                     <div className="mono" style={{ fontSize: 10, color: "var(--mid)", textTransform: "uppercase" }}>
                       {String(trip.id ?? "").slice(0, 8)}
                     </div>
+                  </td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{b?.name || trip.bus_name || "Unknown Bus"}</div>
+                    <div style={{ fontSize: 11, color: "var(--mid)" }}>{d?.name || trip.driver_name || "Unassigned"}</div>
                   </td>
                   <td style={{ padding: "12px 16px", width: 180 }}>
                     <div className="mono" style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--mid)", marginBottom: 6 }}>
@@ -287,7 +313,7 @@ export default function Trips() {
                     </span>
                   </td>
                   <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                    <div style={{ display: "inline-flex", gap: 6 }}>
+                    <div className="row-actions" style={{ display: "inline-flex", gap: 6 }}>
                       <button type="button" onClick={() => openEdit(trip)} style={{ border: "none", background: "transparent", color: "var(--mid)", cursor: "pointer" }}>
                         <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
                       </button>
@@ -309,12 +335,23 @@ export default function Trips() {
       </div>
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 16, marginTop: 16 }}>
-        {[
-          ["Live Fleet Utilization", "84.2", "%"],
-          ["Pending Reservations", String(trips.length * 3), ""],
-          ["Driver Availability", String(drivers.length), "Active"],
-          ["System Uptime", "99.99", "#OK"],
-        ].map(([label, value, suffix]) => (
+        {(() => {
+          const activeTrips = trips.filter((t) => !t.archived_at);
+          const totalCap = activeTrips.reduce((sum, t) => sum + Number(t.bus_seat_capacity || 0), 0);
+          const totalUsed = activeTrips.reduce((sum, t) => {
+            const cap = Number(t.bus_seat_capacity || 0);
+            const left = Number(t.seats_left ?? 0);
+            return sum + Math.max(0, cap - left);
+          }, 0);
+          const utilPct = totalCap > 0 ? ((totalUsed / totalCap) * 100).toFixed(1) : "--";
+          const totalReserved = totalUsed;
+          return [
+            ["Fleet Utilization", String(utilPct), totalCap > 0 ? "%" : ""],
+            ["Booked Seats", String(totalReserved), "active"],
+            ["Drivers", String(drivers.length), "registered"],
+            ["Active Trips", String(activeTrips.length), "tonight"],
+          ];
+        })().map(([label, value, suffix]) => (
           <article key={label} style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderRadius: 8, padding: 16 }}>
             <span className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--mid)" }}>
               {label}

@@ -1,16 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Spinner from "../../components/ui/Spinner";
 import EmptyState from "../../components/ui/EmptyState";
+import { API_BASE, getUser } from "../../services/api";
 
-const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1").replace(/\/+$/, "");
 
-function getUser() {
-  try {
-    return JSON.parse(localStorage.getItem("fleetmark_user") || "null");
-  } catch {
-    return null;
-  }
-}
 
 export default function ReserveASeat() {
   const user = useMemo(() => getUser(), []);

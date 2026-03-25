@@ -33,12 +33,12 @@ services:
   # Backend Service (Django)
   # ──────────────────────────────────────────────────────────────────────────
   backend:
-    build: ./backend
+    build: ./fleetmark/backend
     container_name: ssbs-backend
     restart: unless-stopped
     entrypoint: ["/entrypoint.sh"]
     volumes:
-      - ./backend:/app
+      - ./fleetmark/backend:/app
       - ./logs:/var/log/ssbs
     ports:
       - "8000:8000"
@@ -56,14 +56,14 @@ services:
   # Without this, the container runs entrypoint.sh and starts a Django server
   # ──────────────────────────────────────────────────────────────────────────
   cron:
-    build: ./backend
+    build: ./fleetmark/backend
     container_name: ssbs-cron
     restart: unless-stopped
     entrypoint: [""]
     command: >
       sh -c "while true; do python manage.py archive_trips; sleep 60; done"
     volumes:
-      - ./backend:/app
+      - ./fleetmark/backend:/app
     env_file:
       - .env
     depends_on:
@@ -76,17 +76,17 @@ services:
   # Frontend Service (Vite/React)
   # ──────────────────────────────────────────────────────────────────────────
   frontend:
-    build: ./frontend
+    build: .
     container_name: ssbs-frontend
     restart: unless-stopped
     entrypoint: ["/entrypoint.sh"]
     ports:
-      - "5173:5173"
+      - "5174:5174"
     volumes:
-      - ./frontend:/app
+      - ./fleetmark/frontend:/app
       - ssbs-frontend-node-modules:/app/node_modules
     environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000/api}
+      - VITE_API_URL=http://backend:8000/api/v1
     networks:
       - ssbs-network
 

@@ -19,6 +19,10 @@ build:
 up:
 	docker compose up -d
 
+## Run backend in Docker and start frontend locally
+run: up
+	cd fleetmark/frontend && npm run dev
+
 ## Start all services with build
 up-build:
 	docker compose up -d --build

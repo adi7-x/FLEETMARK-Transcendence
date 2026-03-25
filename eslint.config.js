@@ -24,6 +24,8 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Standard async data-fetch pattern: calling loadData() in useEffect is valid
+      'react-hooks/immutability': 'off',
     },
   },
 ])

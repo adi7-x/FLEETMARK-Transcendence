@@ -37,6 +37,10 @@ class AvailableTripListView(APIView):
 
 		now_dt = localtime(now())
 		
+		# Prevent API access entirely if "now" is outside the 8 PM - 6 AM shift window
+		if time(6, 0) <= now_dt.time() < time(20, 0):
+			return Response([])
+		
 		# 1. Find the earliest future non-archived trip
 		first_trip = Trip.objects.filter(
 			route__route_stations__station_id=station_id,

@@ -65,7 +65,7 @@ class TripAPITests(APITestCase):
 	def test_available_trips_returns_results_in_peak_window(self, mock_now, mock_localtime):
 		self.client.force_authenticate(user=self.student_user)
 		trip = self._create_trip()
-		fake_time = datetime(2026, 1, 1, 22, 0, tzinfo=dt_timezone.utc)
+		fake_time = datetime(2026, 1, 1, 20, 30, tzinfo=dt_timezone.utc)
 		mock_now.return_value = fake_time
 		mock_localtime.side_effect = lambda value: fake_time
 
@@ -107,7 +107,7 @@ class TripAPITests(APITestCase):
 			role='STUDENT'
 		)
 		Reservation.objects.create(trip=trip, student=user)
-		fake_time = datetime(2026, 1, 1, 22, 0, tzinfo=dt_timezone.utc)
+		fake_time = datetime(2026, 1, 1, 20, 30, tzinfo=dt_timezone.utc)
 		mock_now.return_value = fake_time
 		mock_localtime.side_effect = lambda value: fake_time
 

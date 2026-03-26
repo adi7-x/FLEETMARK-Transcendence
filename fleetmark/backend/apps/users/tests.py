@@ -54,13 +54,11 @@ class OAuth42CallbackViewTest(TestCase):
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'valid-code'})
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
-        self.assertIn('user', response.data)
-        self.assertEqual(response.data['user']['login_42'], 'testuser42')
-        self.assertEqual(response.data['user']['email'], 'test@student.42.fr')
-        self.assertEqual(response.data['user']['role'], 'STUDENT')
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn('/auth/callback#access=', response.url)
+        self.assertIn('&refresh=', response.url)
+        self.assertIn('&role=STUDENT', response.url)
+        self.assertIn('&login=testuser42', response.url)
 
         # Verify user was created in DB
         self.assertTrue(User.objects.filter(login_42='testuser42').exists())
@@ -90,7 +88,7 @@ class OAuth42CallbackViewTest(TestCase):
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'valid-code'})
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
         self.assertEqual(User.objects.filter(login_42='existinguser').count(), 1)
 
     @patch('apps.users.views.ADMIN_42_LOGIN', 'admin42')
@@ -112,13 +110,14 @@ class OAuth42CallbackViewTest(TestCase):
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'valid-code'})
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['user']['role'], 'LOGISTICS_STAFF')
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn('&role=LOGISTICS_STAFF', response.url)
 
     @patch('apps.users.views.requests.post')
     def test_failed_token_exchange_returns_502(self, mock_post):
         mock_response = MagicMock()
         mock_response.status_code = 401
+        mock_response.text = 'Unauthorized'
         mock_post.return_value = mock_response
 
         response = self.client.get('/api/v1/auth/42/callback/', {'code': 'bad-code'})

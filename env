@@ -26,10 +26,15 @@ INTRA_42_REDIRECT_URI=http://localhost:8000/api/v1/auth/42/callback/
 
 
 # Admin user (42 login that gets LOGISTICS_STAFF role)
-ADMIN_42_LOGIN=mlahrech
+ADMIN_42_LOGIN=adbourji
 
 # ──────────────────────────────────────
 # Frontend (Vite)
 # ──────────────────────────────────────
-FRONTEND_URL=http://localhost:5174
-VITE_API_URL=http://localhost:8000/api/v1
+FRONTEND_URL=https://localhost:8443
+VITE_API_URL=https://localhost:8443/api/v1
+
+# ──────────────────────────────────────
+# Vault Configuration
+# ──────────────────────────────────────
+VAULT_ADDR=http://vault:8200

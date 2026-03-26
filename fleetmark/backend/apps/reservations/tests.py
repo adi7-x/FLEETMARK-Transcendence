@@ -109,6 +109,7 @@ class ReservationAPITests(APITestCase):
 	def test_cancel_reservation_wrong_user_returns_404(self):
 		trip = self._create_trip()
 		reservation = Reservation.objects.create(trip=trip, student=self.user)
+		self.client.force_authenticate(user=self.other_user) # Authenticate as the wrong user
 		url = reverse('reservation-detail', args=[reservation.id])
 		response = self.client.delete(url + f'?user_id={self.other_user.id}')
 		self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

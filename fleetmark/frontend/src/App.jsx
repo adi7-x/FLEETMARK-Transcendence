@@ -128,6 +128,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/passenger/live-map"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <StudentShell>
+              <PassengerOverview />
+            </StudentShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/passenger/reserve"
         element={
           <ProtectedRoute role="STUDENT" user={user}>

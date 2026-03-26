@@ -3,6 +3,7 @@ import { useTranslation } from "../../context/TranslationContext";
 
 const navItems = [
   { id: "dashboard", labelKey: "navDashboard", path: "/passenger", icon: "dashboard" },
+  { id: "live-map", labelKey: "navLiveMap", path: "/passenger/live-map", icon: "map" },
   { id: "bookings", labelKey: "navBookings", path: "/passenger/reserve", icon: "event_seat" },
   { id: "history", labelKey: "navHistory", path: "/passenger/history", icon: "history" },
   { id: "settings", labelKey: "navSettings", path: "/passenger/settings", icon: "settings" },
@@ -172,7 +173,7 @@ export default function StudentLayout({
             <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("fleetmark:refresh"))} style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--line2)", background: "transparent", color: "var(--dim)", cursor: "pointer" }}>
               <span className="material-symbols-outlined">refresh</span>
             </button>
-            <button type="button" style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--line2)", background: "transparent", color: "var(--dim)", position: "relative", cursor: "pointer" }}>
+            <button type="button" onClick={() => alert('Notifications coming soon!')} style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--line2)", background: "transparent", color: "var(--dim)", position: "relative", cursor: "pointer" }}>
               <span className="material-symbols-outlined">notifications</span>
             </button>
             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line2)", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "var(--ink2)" }}>

@@ -54,7 +54,22 @@ export default function Onboarding() {
 
         {error ? <p style={{ color: "var(--red)", marginTop: "var(--space-4)" }}>{error}</p> : null}
 
-        <div style={{ marginTop: "var(--space-6)", display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ marginTop: "var(--space-6)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => window.location.replace("/passenger")}
+            style={{
+              border: "1px solid var(--line2)",
+              borderRadius: "var(--radius-sm)",
+              padding: "10px 16px",
+              background: "var(--surface2)",
+              color: "var(--mid)",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Skip
+          </button>
           <button
             type="button"
             disabled={!selectedStation}

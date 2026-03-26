@@ -92,6 +92,13 @@ export default function Trips() {
     return "scheduled";
   }
 
+  function capacityForTrip(trip) {
+    const direct = Number(trip.bus_seat_capacity ?? trip.seat_capacity ?? 0);
+    if (direct > 0) return direct;
+    const bus = buses.find((item) => item.id === trip.bus);
+    return Number(bus?.seat_capacity ?? bus?.capacity ?? 0);
+  }
+
   const filtered = trips.filter((trip) => {
     const rowStatus = getRowStatus(trip);
     if (statusFilter !== "all" && statusFilter !== rowStatus) return false;

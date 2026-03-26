@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import EmptyState from "../../components/ui/EmptyState";
 import Spinner from "../../components/ui/Spinner";
 import { API_BASE, getUser } from "../../services/api";
@@ -12,39 +12,48 @@ export default function PassengerOverview() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const aliveRef = useRef(true);
 
   useEffect(() => {
-    let active = true;
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const token = localStorage.getItem("fleetmark_access");
-        if (!token || !user?.station || !user?.id) throw new Error("Missing user session.");
-
-        const [tripRes, resRes, busRes] = await Promise.all([
-          fetch(`${API_BASE}/trips/available/?station_id=${encodeURIComponent(user.station)}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/reservations/?user_id=${encodeURIComponent(user.id)}`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API_BASE}/buses/`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        if (!tripRes.ok || !resRes.ok || !busRes.ok) throw new Error("Failed loading dashboard data.");
-        const [tripData, resData, busData] = await Promise.all([tripRes.json(), resRes.json(), busRes.json()]);
-        if (active) {
-          setTrips(Array.isArray(tripData) ? tripData : []);
-          setBuses(Array.isArray(busData) ? busData : []);
-          setReservations(Array.isArray(resData) ? resData : []);
-        }
-      } catch (err) {
-        if (active) setError(err.message || "Unable to load overview.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    load();
     return () => {
-      active = false;
+      aliveRef.current = false;
+    };
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("fleetmark_access");
+      if (!token || !user?.station || !user?.id) throw new Error("Missing user session.");
+
+      const [tripRes, resRes, busRes] = await Promise.all([
+        fetch(`${API_BASE}/trips/available/?station_id=${encodeURIComponent(user.station)}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/reservations/?user_id=${encodeURIComponent(user.id)}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/buses/`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (!tripRes.ok || !resRes.ok || !busRes.ok) throw new Error("Failed loading dashboard data.");
+      const [tripData, resData, busData] = await Promise.all([tripRes.json(), resRes.json(), busRes.json()]);
+      if (aliveRef.current) {
+        setTrips(Array.isArray(tripData) ? tripData : []);
+        setBuses(Array.isArray(busData) ? busData : []);
+        setReservations(Array.isArray(resData) ? resData : []);
+      }
+    } catch (err) {
+      if (aliveRef.current) setError(err.message || "Unable to load overview.");
+    } finally {
+      if (aliveRef.current) setLoading(false);
     };
   }, [user?.id, user?.station]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    window.addEventListener("fleetmark:refresh", load);
+    return () => window.removeEventListener("fleetmark:refresh", load);
+  }, [load]);
 
   const tonightTrip = trips[0];
   const hasReservedTonight = tonightTrip

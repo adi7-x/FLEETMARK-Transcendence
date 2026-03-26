@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleetmark Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .test { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #007bff; }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        .warning { border-left-color: #ffc107; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Fleetmark Complete Flow Test</h1>
+    
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        const API_BASE = 'http://localhost:8000/api/v1';
+        
+        function addTest(title, status, message, details = null) {
+            const div = document.createElement('div');
+            div.className = `test ${status}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <p><strong>Status:</strong> ${status.toUpperCase()}</p>
+                <p>${message}</p>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+            results.appendChild(div);
+        }
+
+        async function runTests() {
+            addTest('Starting Tests', 'warning', 'Beginning comprehensive flow testing...');
+            
+            // Test 1: Frontend Availability
+            try {
+                const frontendRes = await fetch('http://localhost:5174');
+                if (frontendRes.ok) {
+                    addTest('Frontend Availability', 'success', 'Frontend is running on port 5174');
+                } else {
+                    addTest('Frontend Availability', 'error', `Frontend returned status ${frontendRes.status}`);
+                }
+            } catch (error) {
+                addTest('Frontend Availability', 'error', `Cannot reach frontend: ${error.message}`);
+            }
+
+            // Test 2: Backend Availability
+            try {
+                const backendRes = await fetch(`${API_BASE}/auth/42/login/`);
+                const data = await backendRes.json();
+                if (data.authorization_url) {
+                    addTest('Backend Availability', 'success', 'Backend is running and OAuth endpoint works', 
+                        `OAuth URL: ${data.authorization_url.substring(0, 100)}...`);
+                } else {
+                    addTest('Backend Availability', 'error', 'OAuth endpoint did not return authorization URL');
+                }
+            } catch (error) {
+                addTest('Backend Availability', 'error', `Cannot reach backend: ${error.message}`);
+            }
+
+            // Test 3: Protected Routes
+            try {
+                const stationsRes = await fetch(`${API_BASE}/stations/`);
+                if (stationsRes.status === 401) {
+                    addTest('Protected Routes', 'success', 'Stations endpoint correctly requires authentication');
+                } else {
+                    addTest('Protected Routes', 'error', `Stations endpoint should require auth, got ${stationsRes.status}`);
+                }
+            } catch (error) {
+                addTest('Protected Routes', 'error', `Error testing protected routes: ${error.message}`);
+            }
+
+            // Test 4: CORS Headers (if applicable)
+            try {
+                const corsRes = await fetch(`${API_BASE}/auth/42/login/`, { method: 'OPTIONS' });
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': corsRes.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': corsRes.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': corsRes.headers.get('Access-Control-Allow-Headers')
+                };
+                addTest('CORS Configuration', 'success', 'CORS preflight request completed', 
+                    JSON.stringify(corsHeaders, null, 2));
+            } catch (error) {
+                addTest('CORS Configuration', 'warning', `CORS test failed: ${error.message}`);
+            }
+
+            addTest('Test Summary', 'success', 'All core functionality tests completed. Check individual results above.');
+        }
+
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

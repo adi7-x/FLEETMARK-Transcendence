@@ -1,41 +1,130 @@
-import React, { useState } from "react";
-import Toggle from "../../components/ui/Toggle";
+import React from "react";
 
+/**
+ * Admin Settings
+ *
+ * The configurable flags are not yet backed by API endpoints.
+ * Rather than shipping a page with visually-disabled controls
+ * (opacity 0.6, pointer-events none), these items are shown
+ * in a transparent roadmap callout so the UX is honest.
+ */
 export default function Settings() {
-  const [flags, setFlags] = useState({
-    notifyTrips: true,
-    allowSelfService: false,
-    maintenanceMode: false,
-  });
-
-  function setFlag(key) {
-    setFlags((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
-
-  const rows = [
-    { key: "notifyTrips", label: "Trip notifications", help: "Enable outbound notifications for trip updates." },
-    { key: "allowSelfService", label: "Student self-service changes", help: "Allow station changes from student profile settings." },
-    { key: "maintenanceMode", label: "Maintenance mode", help: "Display maintenance notice across admin screens." },
+  const roadmap = [
+    {
+      label: "Trip notifications",
+      help: "Push outbound notifications when a trip status changes.",
+      icon: "notifications",
+    },
+    {
+      label: "Student self-service station changes",
+      help: "Let passengers update their home stop without admin involvement.",
+      icon: "edit_location",
+    },
+    {
+      label: "Maintenance mode",
+      help: "Display a maintenance banner across all student screens.",
+      icon: "construction",
+    },
   ];
 
   return (
-    <div style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
-      <h1 style={{ margin: 0 }}>Admin Settings</h1>
-      <p style={{ color: "var(--mid)", margin: "0 0 var(--space-2) 0" }}>System-wide configurations. (Changes require version 2.0 backend updates).</p>
-      {rows.map((row) => (
-        <div key={row.key} style={{ borderTop: "1px solid var(--line2)", paddingTop: "var(--space-4)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", opacity: 0.6 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 16 }}>{row.label}</h3>
-              <span className="mono" style={{ fontSize: 10, background: "var(--surface2)", padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>Coming soon</span>
-            </div>
-            <p style={{ margin: "var(--space-2) 0 0", color: "var(--mid)", fontSize: 14 }}>{row.help}</p>
-          </div>
-          <div style={{ pointerEvents: "none" }}>
-            <Toggle checked={flags[row.key]} onChange={() => setFlag(row.key)} />
-          </div>
+    <div style={{ display: "grid", gap: "var(--space-6)", maxWidth: 640 }}>
+      {/* Info banner */}
+      <div className="alert alert-info" style={{ alignItems: "flex-start" }}>
+        <span
+          className="material-symbols-outlined"
+          style={{ fontSize: 20, flexShrink: 0, marginTop: 1, fontVariationSettings: "'FILL' 1" }}
+        >
+          info
+        </span>
+        <div>
+          <strong style={{ fontSize: "var(--font-size-base)", fontWeight: "var(--font-semibold)" }}>
+            Settings are coming in v2.0
+          </strong>
+          <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--font-size-sm)", color: "var(--text-secondary)" }}>
+            The following controls are planned for the next backend release.
+            They&apos;re listed here for visibility — none of them are wired up yet.
+          </p>
         </div>
-      ))}
+      </div>
+
+      {/* Roadmap items */}
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        {roadmap.map((item, i) => (
+          <div
+            key={item.label}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "var(--space-4)",
+              padding: "var(--space-5)",
+              borderTop: i > 0 ? "1px solid var(--border)" : "none",
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "var(--radius-md)",
+                background: "var(--surface2)",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 18, color: "var(--text-secondary)" }}
+              >
+                {item.icon}
+              </span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-2)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "var(--font-size-base)",
+                    fontWeight: "var(--font-semibold)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {item.label}
+                </span>
+                <span
+                  style={{
+                    fontSize: "var(--font-size-xs)",
+                    background: "var(--surface2)",
+                    color: "var(--text-tertiary)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 999,
+                    padding: "1px 8px",
+                    fontWeight: "var(--font-medium)",
+                  }}
+                >
+                  Planned
+                </span>
+              </div>
+              <p
+                style={{
+                  margin: "var(--space-1) 0 0",
+                  fontSize: "var(--font-size-sm)",
+                  color: "var(--text-secondary)",
+                  lineHeight: "var(--leading-normal)",
+                }}
+              >
+                {item.help}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "../../context/TranslationContext";
+import UserIdentity from "../ui/UserIdentity";
+import Button from "../ui/Button";
+import DarkModeToggle from "../ui/DarkModeToggle";
 
 const navItems = [
-  { id: "dashboard", labelKey: "navDashboard", path: "/passenger", icon: "dashboard" },
-  { id: "live-map", labelKey: "navLiveMap", path: "/passenger/live-map", icon: "map" },
-  { id: "bookings", labelKey: "navBookings", path: "/passenger/reserve", icon: "event_seat" },
-  { id: "history", labelKey: "navHistory", path: "/passenger/history", icon: "history" },
-  { id: "settings", labelKey: "navSettings", path: "/passenger/settings", icon: "settings" },
+  { id: "dashboard", labelKey: "navDashboard", path: "/passenger",           icon: "dashboard"  },
+  { id: "bookings",  labelKey: "navBookings",  path: "/passenger/reserve",   icon: "event_seat" },
+  { id: "history",   labelKey: "navHistory",   path: "/passenger/history",   icon: "history"    },
+  { id: "settings",  labelKey: "navSettings",  path: "/passenger/settings",  icon: "settings"   },
 ];
 
 export default function StudentLayout({
@@ -15,174 +17,209 @@ export default function StudentLayout({
   onNavigate,
   onLogout,
   children,
-  pageTitle = "Student Dashboard",
+  pageTitle = "Overview",
 }) {
-  const stationName = user?.station_name || "No Station";
-  const login = user?.login_42 || "student";
-  const { t } = useTranslation();
+  const stationName = user?.station_name || "No station set";
+  const login       = user?.login_42 || "student";
+  const { t }       = useTranslation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
-      <aside
-        style={{
-          position: "fixed",
-          left: 0,
-          top: 0,
-          height: "100%",
-          width: 220,
-          background: "var(--surface)",
-          display: "flex",
-          flexDirection: "column",
-          padding: "24px 16px",
-          gap: 32,
-          borderRight: "1px solid var(--line2)",
-          zIndex: 50,
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" }}>Fleetmark</span>
-          <span className="mono" style={{ fontSize: 10, color: "var(--dim)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
-            1337 Shuttle System
-          </span>
-        </div>
+  // Close drawer on route change
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [activePath]);
 
-        <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-          {navItems.map((item) => {
-            const active = activePath === item.path || (item.id === "dashboard" && activePath === "/passenger");
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onNavigate && onNavigate(item.path)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  border: "none",
-                  textAlign: "left",
-                  padding: "8px 12px",
-                  background: active ? "var(--surface-active)" : "transparent",
-                  color: active ? "var(--blue)" : "var(--dim)",
-                  borderLeft: active ? "2px solid var(--blue2)" : "2px solid transparent",
-                  cursor: "pointer",
-                  transform: active ? "scale(0.98)" : "none",
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                  {item.icon}
-                </span>
-                <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
-                  {t(item.labelKey)}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+  function handleNavigate(path) {
+    onNavigate?.(path);
+    setDrawerOpen(false);
+  }
 
-        <div style={{ paddingTop: 12, borderTop: "1px solid var(--line2)", display: "grid", gap: 12 }}>
-          <button
-            type="button"
-            onClick={() => onNavigate && onNavigate("/passenger/reserve")}
-            style={{
-              border: "1px solid var(--blue-bdr)",
-              background: "var(--blue-bg)",
-              color: "var(--blue)",
-              borderRadius: 7,
-              padding: "10px 12px",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            {t("navNewBooking")}
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line2)", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, color: "var(--ink2)" }}>
-              {login[0].toUpperCase()}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700 }}>{login}</div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            style={{
-              border: "none",
-              background: "transparent",
-              color: "var(--dim)",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 10px",
-              cursor: "pointer",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              fontWeight: 700,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              logout
-            </span>
-            {t("navLogout")}
-          </button>
-        </div>
-      </aside>
-
-      <main style={{ marginLeft: 220, minHeight: "100vh", background: "var(--bg)" }}>
-        <header
+  const sidebar = (
+    <>
+      {/* Logo */}
+      <div style={{ padding: "0 var(--space-3)" }}>
+        <div
           style={{
-            height: 56,
-            position: "sticky",
-            top: 0,
-            zIndex: 40,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "0 32px",
-            borderBottom: "1px solid var(--line2)",
-            background: "color-mix(in srgb, var(--bg) 86%, transparent)",
-            backdropFilter: "blur(12px)",
+            fontSize: 18,
+            fontWeight: "var(--font-extrabold)",
+            letterSpacing: "-0.02em",
+            color: "var(--text-primary)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em" }}>{pageTitle}</h1>
-            <div
+          Fleetmark
+        </div>
+        <div
+          style={{
+            fontSize: "var(--font-size-xs)",
+            color: "var(--text-tertiary)",
+            marginTop: 2,
+            fontWeight: "var(--font-medium)",
+          }}
+        >
+          1337 Shuttle System
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+        {navItems.map((item) => {
+          const active =
+            activePath === item.path ||
+            (item.id === "dashboard" && activePath === "/passenger");
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleNavigate(item.path)}
+              className={`nav-item${active ? " active" : ""}`}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: 20,
+                  flexShrink: 0,
+                  lineHeight: 1,
+                  fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0",
+                }}
+              >
+                {item.icon}
+              </span>
+              {t(item.labelKey)}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* CTA + User identity + logout */}
+      <div
+        style={{
+          borderTop: "1px solid var(--border)",
+          paddingTop: "var(--space-3)",
+          display: "grid",
+          gap: "var(--space-1)",
+        }}
+      >
+        <div style={{ padding: "var(--space-1) var(--space-3)" }}>
+          <Button
+            variant="primary"
+            size="md"
+            icon="event_seat"
+            onClick={() => handleNavigate("/passenger/reserve")}
+            style={{ width: "100%", justifyContent: "center" }}
+          >
+            {t("navNewBooking")}
+          </Button>
+        </div>
+        <UserIdentity login={login} role="Passenger" />
+        <button
+          type="button"
+          className="nav-item"
+          onClick={onLogout}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>
+            logout
+          </span>
+          {t("navLogout")}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="layout-root">
+      {/* Mobile backdrop */}
+      {drawerOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close menu"
+          onClick={() => setDrawerOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`layout-sidebar${drawerOpen ? " drawer-open" : ""}`}>
+        {sidebar}
+      </aside>
+
+      {/* Main */}
+      <main className="layout-main">
+        <header className="layout-header">
+          {/* Hamburger — CSS hides this on desktop */}
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-icon sidebar-hamburger"
+            aria-label="Open menu"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 22, lineHeight: 1 }}>menu</span>
+          </button>
+
+          {/* Title + station pill */}
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flex: "1 1 auto", minWidth: 0 }}>
+            <h1
               style={{
-                border: "1px solid var(--line2)",
-                borderRadius: 999,
-                background: "var(--surface)",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 12px",
+                margin: 0,
+                fontSize: "var(--font-size-xl)",
+                fontWeight: "var(--font-bold)",
+                letterSpacing: "-0.02em",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                lineHeight: 1,
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 14, color: "var(--green)", fontVariationSettings: "'FILL' 1" }}>
+              {pageTitle}
+            </h1>
+            {/* Station pill */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-2)",
+                padding: "5px 10px",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 999,
+                flexShrink: 0,
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 13, color: "var(--green)", lineHeight: 1, fontVariationSettings: "'FILL' 1" }}
+              >
                 location_on
               </span>
-              <span className="mono" style={{ fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <span
+                style={{
+                  fontSize: "var(--font-size-xs)",
+                  color: "var(--text-secondary)",
+                  fontWeight: "var(--font-medium)",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {stationName}
               </span>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("fleetmark:refresh"))} style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--line2)", background: "transparent", color: "var(--dim)", cursor: "pointer" }}>
-              <span className="material-symbols-outlined">refresh</span>
-            </button>
-            <button type="button" onClick={() => alert('Notifications coming soon!')} style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid var(--line2)", background: "transparent", color: "var(--dim)", position: "relative", cursor: "pointer" }}>
-              <span className="material-symbols-outlined">notifications</span>
-            </button>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface2)", border: "1px solid var(--line2)", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700, color: "var(--ink2)" }}>
-              {login[0].toUpperCase()}
-            </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
+            <DarkModeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              icon="refresh"
+              iconOnly
+              title="Refresh"
+              aria-label="Refresh"
+              onClick={() => window.dispatchEvent(new CustomEvent("fleetmark:refresh"))}
+            />
           </div>
         </header>
 
-        <div style={{ padding: 32, maxWidth: 1150, margin: "0 auto" }}>{children}</div>
+        <div className="layout-content layout-content-student">
+          {children}
+        </div>
       </main>
     </div>
   );

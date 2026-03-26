@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { auth } from "../services/api";
 import LanguageSwitcher from "../components/shared/LanguageSwitcher";
 import DarkModeToggle from "../components/ui/DarkModeToggle";
+import FleetmarkLogoAnimation from "../components/ui/FleetmarkLogoAnimation";
 
 /** English-first landing copy; fr/ar reuse English for long-form sections where not translated. */
 const copy = {
@@ -246,6 +247,8 @@ export default function Landing() {
     }
   }
 
+  const [navBusVisible, setNavBusVisible] = useState(false);
+
   return (
     <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
       <nav
@@ -262,7 +265,27 @@ export default function Landing() {
       >
         <div style={{ ...wrap, height: 56, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em" }}>Fleetmark</span>
+            <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", display: "inline-flex", alignItems: "center", gap: 8 }}>
+              {/* Mini bus appears here when animation bus vanishes */}
+              <svg
+                width="26" height="12" viewBox="0 0 92 42" fill="none"
+                xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+                style={{
+                  opacity: navBusVisible ? 1 : 0,
+                  transform: navBusVisible ? "scale(1) translateY(0)" : "scale(0.4) translateY(8px)",
+                  transition: "opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+                  filter: navBusVisible ? "drop-shadow(0 0 6px rgba(99,102,241,0.5))" : "none",
+                }}
+              >
+                <rect x="2" y="3" width="78" height="26" rx="5" fill="var(--card)" stroke="var(--blue)" strokeWidth="1.5"/>
+                <rect x="7" y="8" width="56" height="12" rx="2.5" fill="var(--bg)" opacity="0.85"/>
+                <rect x="68" y="3" width="12" height="26" rx="3.5" fill="var(--card)" stroke="var(--blue)" strokeWidth="0.8" opacity="0.6"/>
+                <rect x="72" y="12" width="7" height="5" rx="1.5" fill="var(--blue)"/>
+                <circle cx="18" cy="34" r="6.5" fill="var(--card)" stroke="var(--blue)" strokeWidth="1.2"/>
+                <circle cx="62" cy="34" r="6.5" fill="var(--card)" stroke="var(--blue)" strokeWidth="1.2"/>
+              </svg>
+              <span style={{ color: navBusVisible ? "var(--blue)" : "inherit", transition: "color 0.5s ease" }}>Fleetmark</span>
+            </span>
             <div style={{ display: "flex", gap: 24, fontSize: 14, color: "var(--mid)" }}>
               <a href="#how">{text.navHow}</a>
               <a href="#schedule">{text.navSchedule}</a>
@@ -324,6 +347,10 @@ export default function Landing() {
             }}
           />
           <div>
+            {/* Animated logo — appears first, brand moment */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
+              <FleetmarkLogoAnimation onBusDone={() => setNavBusVisible(true)} />
+            </div>
             <div
               className="mono"
               style={{

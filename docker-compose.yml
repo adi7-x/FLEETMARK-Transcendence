@@ -166,6 +166,11 @@ services:
       ANOMALY_OUTBOUND: "4"
       # Allowed HTTP methods
       ALLOWED_METHODS: "GET HEAD POST PUT PATCH DELETE OPTIONS"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -f https://localhost/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       backend:
         condition: service_started

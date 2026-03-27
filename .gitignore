@@ -50,6 +50,7 @@ postgres-data/
 
 # Database
 database/db_data/
+test/
 
 # macOS
 .DS_Store

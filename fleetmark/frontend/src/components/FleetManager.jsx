@@ -219,9 +219,9 @@ const FleetManager = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
-                <th style={{ padding: '15px' }}>Name</th>
-                <th style={{ padding: '15px' }}>Details</th>
-                <th style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
+                <th scope="col" style={{ padding: '15px' }}>Name</th>
+                <th scope="col" style={{ padding: '15px' }}>Details</th>
+                <th scope="col" style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>

@@ -1,7 +1,21 @@
 import React, { useEffect, useState } from "react";
-import Spinner from "../../components/ui/Spinner";
 import Badge from "../../components/ui/Badge";
+import AdminEmptyState from "../../components/ui/AdminEmptyState";
 import { API_BASE } from "../../services/api";
+
+function DriversSkeleton() {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "var(--space-4)" }}>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)", display: "grid", gap: 10 }}>
+          <div className="skeleton" style={{ height: 14, width: "60%", borderRadius: 4 }} />
+          <div className="skeleton" style={{ height: 12, width: "40%", borderRadius: 4 }} />
+          <div className="skeleton" style={{ height: 22, width: 70, borderRadius: 12 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 
 const emptyForm = { name: "", username: "", password: "", status: "active" };
@@ -36,6 +50,13 @@ export default function Drivers() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onRefresh = () => load();
+    window.addEventListener("fleetmark:refresh", onRefresh);
+    return () => window.removeEventListener("fleetmark:refresh", onRefresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -91,10 +112,10 @@ export default function Drivers() {
     }
   }
 
-  if (loading) return <Spinner text="Loading drivers..." />;
+  if (loading) return <DriversSkeleton />;
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-4)" }}>
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ margin: 0 }}>Drivers</h1>
         <button
@@ -121,7 +142,7 @@ export default function Drivers() {
 
       {error ? <p style={{ color: "var(--red)", margin: 0 }}>{error}</p> : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "var(--space-4)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "var(--space-4)" }}>
         {drivers.map((driver) => (
           <article key={driver.id} style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)", position: "relative" }}>
             <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6 }}>
@@ -139,13 +160,15 @@ export default function Drivers() {
           </article>
         ))}
         {!drivers.length ? (
-          <p style={{ color: "var(--mid)" }}>No drivers registered.</p>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <AdminEmptyState variant="drivers" onAction={openCreate} />
+          </div>
         ) : null}
       </div>
 
       {/* Create / Edit Modal */}
       {open ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(480px,92vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
             <h3 style={{ margin: 0 }}>{editing ? "Edit Driver" : "Add New Driver"}</h3>
             <div style={{ display: "grid", gap: "var(--space-2)" }}>
@@ -204,7 +227,7 @@ export default function Drivers() {
 
       {/* Delete Confirmation Modal */}
       {confirmDelete ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(420px,90vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
             <h3 style={{ margin: 0 }}>Delete Driver</h3>
             <p style={{ margin: 0, color: "var(--mid)" }}>

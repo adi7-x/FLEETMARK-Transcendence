@@ -83,12 +83,12 @@ const ReportManager = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee', textAlign: 'left' }}>
-              <th style={{ padding: '15px' }}>Date</th>
-              <th style={{ padding: '15px' }}>Reporter</th>
-              <th style={{ padding: '15px' }}>Trip Info</th>
-              <th style={{ padding: '15px' }}>Category</th>
-              <th style={{ padding: '15px' }}>Status</th>
-              <th style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
+              <th scope="col" style={{ padding: '15px' }}>Date</th>
+              <th scope="col" style={{ padding: '15px' }}>Reporter</th>
+              <th scope="col" style={{ padding: '15px' }}>Trip Info</th>
+              <th scope="col" style={{ padding: '15px' }}>Category</th>
+              <th scope="col" style={{ padding: '15px' }}>Status</th>
+              <th scope="col" style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>

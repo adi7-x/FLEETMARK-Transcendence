@@ -173,11 +173,11 @@ const UserManager = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
                 <thead>
                   <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                    <th style={{ padding: '15px' }}>42 Login</th>
-                    <th style={{ padding: '15px' }}>Role</th>
-                    <th style={{ padding: '15px' }}>Station</th>
-                    <th style={{ padding: '15px' }}>Status</th>
-                    <th style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
+                    <th scope="col" style={{ padding: '15px' }}>42 Login</th>
+                    <th scope="col" style={{ padding: '15px' }}>Role</th>
+                    <th scope="col" style={{ padding: '15px' }}>Station</th>
+                    <th scope="col" style={{ padding: '15px' }}>Status</th>
+                    <th scope="col" style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -8,10 +8,12 @@ const navItems = [
   { id: "dashboard",   labelKey: "navDashboard", path: "/admin",              icon: "dashboard"    },
   { id: "trips",       labelKey: "navTrips",     path: "/admin/trips",        icon: "event_seat"   },
   { id: "buses",       labelKey: "navBuses",     path: "/admin/buses",        icon: "directions_bus"},
+  { id: "stations",    labelKey: "navStations",  path: "/admin/stations",     icon: "location_on"  },
   { id: "routes",      labelKey: "navRoutes",    path: "/admin/routes",       icon: "map"          },
   { id: "drivers",     labelKey: "navDrivers",   path: "/admin/drivers",      icon: "person"       },
   { id: "history",     labelKey: "navHistory",   path: "/admin/reservations", icon: "history"      },
   { id: "reports",     labelKey: "navReports",   path: "/admin/reports",      icon: "analytics"    },
+  { id: "announcements", labelKey: "navAnnouncements", path: "/admin/announcements", icon: "campaign" },
   { id: "settings",    labelKey: "navSettings",  path: "/admin/settings",     icon: "settings"     },
 ];
 
@@ -117,7 +119,9 @@ export default function AdminLayout({
   );
 
   return (
-    <div className="layout-root">
+    <div className="layout-root" style={{ '--accent': '#10b981', '--accent2': '#34d399', '--accent-light': 'rgba(16,185,129,0.08)', '--accent-mid': 'rgba(16,185,129,0.14)', '--accent-border': 'rgba(16,185,129,0.28)', '--accent-glow': 'rgba(16,185,129,0.2)', '--accent-dim': '#d1fae5' }}>
+      {/* Skip-to-content link — Fix 3c */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       {/* Mobile backdrop */}
       {drawerOpen && (
         <button
@@ -133,8 +137,8 @@ export default function AdminLayout({
         {sidebar}
       </aside>
 
-      {/* Main */}
-      <main className="layout-main">
+      {/* Main — id for skip link (WCAG) */}
+      <main id="main-content" className="layout-main">
         <header className="layout-header">
           {/* Hamburger — hidden on desktop via CSS */}
           <button
@@ -146,7 +150,7 @@ export default function AdminLayout({
             <span className="material-symbols-outlined" style={{ fontSize: 22, lineHeight: 1 }}>menu</span>
           </button>
 
-          <h1
+          <div
             style={{
               margin: 0,
               fontSize: "var(--font-size-xl)",
@@ -159,9 +163,11 @@ export default function AdminLayout({
               whiteSpace: "nowrap",
               lineHeight: 1,
             }}
+            role="heading"
+            aria-level="2"
           >
             {pageTitle}
-          </h1>
+          </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
             <DarkModeToggle />
@@ -174,14 +180,7 @@ export default function AdminLayout({
               aria-label="Refresh"
               onClick={() => window.dispatchEvent(new CustomEvent("fleetmark:refresh"))}
             />
-            <Button
-              variant="primary"
-              size="md"
-              icon="add"
-              onClick={() => (onNewTrip ? onNewTrip() : onNavigate?.("/admin/trips"))}
-            >
-              {t("navNewTrip")}
-            </Button>
+
           </div>
         </header>
 

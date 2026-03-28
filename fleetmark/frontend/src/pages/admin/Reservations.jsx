@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Spinner from "../../components/ui/Spinner";
+import SkeletonTable from "../../components/ui/SkeletonTable";
 import EmptyState from "../../components/ui/EmptyState";
 import { API_BASE } from "../../services/api";
 
@@ -11,32 +11,37 @@ export default function Reservations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const token = localStorage.getItem("fleetmark_access");
-        const headers = { Authorization: `Bearer ${token}` };
-        const [rRes, uRes] = await Promise.all([
-          fetch(`${API_BASE}/reservations/`, { headers }),
-          fetch(`${API_BASE}/auth/users/`, { headers }),
-        ]);
-        if (!rRes.ok || !uRes.ok) throw new Error("Failed to load reservations.");
-        const [rData, uData] = await Promise.all([rRes.json(), uRes.json()]);
-        if (active) {
-          setReservations(Array.isArray(rData) ? rData : []);
-          setUsers(Array.isArray(uData) ? uData : []);
-        }
-      } catch (err) {
-        if (active) setError(err.message || "Unable to load reservations.");
-      } finally {
-        if (active) setLoading(false);
-      }
+  async function loadReservations() {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("fleetmark_access");
+      const headers = { Authorization: `Bearer ${token}` };
+      const [rRes, uRes] = await Promise.all([
+        fetch(`${API_BASE}/reservations/`, { headers }),
+        fetch(`${API_BASE}/auth/users/`, { headers }),
+      ]);
+      if (!rRes.ok || !uRes.ok) throw new Error("Failed to load reservations.");
+      const [rData, uData] = await Promise.all([rRes.json(), uRes.json()]);
+      setReservations(Array.isArray(rData) ? rData : []);
+      setUsers(Array.isArray(uData) ? uData : []);
+    } catch (err) {
+      setError(err.message || "Unable to load reservations.");
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => {
-      active = false;
-    };
+  }
+
+  useEffect(() => {
+    loadReservations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onRefresh = () => loadReservations();
+    window.addEventListener("fleetmark:refresh", onRefresh);
+    return () => window.removeEventListener("fleetmark:refresh", onRefresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(() => {
@@ -58,12 +63,12 @@ export default function Reservations() {
     return { label: "Completed", color: "var(--green)" };
   }
 
-  if (loading) return <Spinner text="Loading reservations..." />;
+  if (loading) return <SkeletonTable cols={5} rows={5} />;
 
   const hasSearched = query.trim().length > 0;
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-4)" }}>
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
       <h1 style={{ margin: 0 }}>Reservations</h1>
       <input
         value={query}
@@ -81,11 +86,11 @@ export default function Reservations() {
         <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid var(--line2)", borderRadius: 10, overflow: "hidden" }}>
           <thead>
             <tr style={{ textAlign: "left", background: "var(--surface)" }}>
-              <th style={{ padding: 10 }}>Student</th>
-              <th style={{ padding: 10 }}>Trip</th>
-              <th style={{ padding: 10 }}>Departure</th>
-              <th style={{ padding: 10 }}>Status</th>
-              <th style={{ padding: 10 }}>Booked At</th>
+              <th scope="col" style={{ padding: 10 }}>Student</th>
+              <th scope="col" style={{ padding: 10 }}>Trip</th>
+              <th scope="col" style={{ padding: 10 }}>Departure</th>
+              <th scope="col" style={{ padding: 10 }}>Status</th>
+              <th scope="col" style={{ padding: 10 }}>Booked At</th>
             </tr>
           </thead>
           <tbody>

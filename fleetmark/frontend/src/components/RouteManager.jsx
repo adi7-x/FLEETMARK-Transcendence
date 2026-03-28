@@ -213,10 +213,10 @@ const RouteManager = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                  <th style={{ padding: '15px' }}>Route Name</th>
-                  <th style={{ padding: '15px' }}>Category</th>
-                  <th style={{ padding: '15px' }}>Stations Count</th>
-                  <th style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
+                  <th scope="col" style={{ padding: '15px' }}>Route Name</th>
+                  <th scope="col" style={{ padding: '15px' }}>Category</th>
+                  <th scope="col" style={{ padding: '15px' }}>Stations Count</th>
+                  <th scope="col" style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>

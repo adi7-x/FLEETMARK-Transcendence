@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import Spinner from "../../components/ui/Spinner";
+import SkeletonTable from "../../components/ui/SkeletonTable";
+import SetupProgress from "../../components/ui/SetupProgress";
+import AdminEmptyState from "../../components/ui/AdminEmptyState";
 import { API_BASE } from "../../services/api";
 
 
@@ -48,6 +50,13 @@ export default function Routes() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onRefresh = () => load();
+    window.addEventListener("fleetmark:refresh", onRefresh);
+    return () => window.removeEventListener("fleetmark:refresh", onRefresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -113,10 +122,20 @@ export default function Routes() {
     }
   }
 
-  if (loading) return <Spinner text="Loading routes..." />;
+  if (loading) return (
+    <div style={{ display: "grid", gap: "var(--section-gap)" }}>
+      <SkeletonTable cols={3} rows={6} />
+    </div>
+  );
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--space-5)" }}>
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
+      <SetupProgress currentStep="routes" done={routes.length > 0} />
+      
+      {!routes.length && !error ? (
+        <AdminEmptyState variant="routes" onAction={openCreate} />
+      ) : (
+      <div className="animate-in" style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "var(--space-5)" }}>
       {/* Sidebar with Route List */}
       <aside style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -229,10 +248,12 @@ export default function Routes() {
           </div>
         )}
       </section>
+      </div>
+      )}
 
       {/* Create / Edit Modal */}
       {open ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(560px,92vw)", maxHeight: "85vh", overflowY: "auto", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
             <h3 style={{ margin: 0 }}>{editing ? "Edit Route" : "Add New Route"}</h3>
             <div style={{ display: "grid", gap: "var(--space-2)" }}>
@@ -312,7 +333,7 @@ export default function Routes() {
 
       {/* Delete Confirmation Modal */}
       {confirmDelete ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(420px,90vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
             <h3 style={{ margin: 0 }}>Delete Route</h3>
             <p style={{ margin: 0, color: "var(--mid)" }}>

@@ -1,25 +1,41 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+
+const EXIT_MS = 180;
 
 /**
- * Modal — accessible dialog with focus management and keyboard close.
- *
- * Fixes audit issues:
- *  - role="dialog" + aria-modal="true"
- *  - Escape key closes modal
- *  - Click-outside closes modal
- *  - tabIndex={-1} so focus moves into the modal on open
- *
- * title:   heading shown at the top
- * footer:  React node rendered in the footer row (usually buttons)
- * onClose: called on Escape or backdrop click
- * open:    controls visibility
+ * Modal — accessible dialog with focus management, keyboard close,
+ * and enter/exit scale + fade animations (Fix 1c).
  */
 export default function Modal({ open, title, onClose, footer, children }) {
   const dialogRef = useRef(null);
+  const [rendered, setRendered] = useState(open);
+  const [exiting, setExiting] = useState(false);
+  const exitTimerRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
-    // Move focus into the modal
+    if (open) {
+      if (exitTimerRef.current) {
+        clearTimeout(exitTimerRef.current);
+        exitTimerRef.current = null;
+      }
+      setRendered(true);
+      setExiting(false);
+      return;
+    }
+    if (!rendered) return;
+    setExiting(true);
+    exitTimerRef.current = setTimeout(() => {
+      setRendered(false);
+      setExiting(false);
+      exitTimerRef.current = null;
+    }, EXIT_MS);
+    return () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
+  }, [open, rendered]);
+
+  useEffect(() => {
+    if (!rendered || exiting) return;
     dialogRef.current?.focus();
 
     function handleKey(e) {
@@ -27,13 +43,16 @@ export default function Modal({ open, title, onClose, footer, children }) {
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+  }, [rendered, exiting, onClose]);
 
-  if (!open) return null;
+  if (!rendered) return null;
+
+  const backdropClass = exiting ? "modal-backdrop modal-backdrop-exit" : "modal-backdrop modal-backdrop-anim";
+  const panelClass = exiting ? "modal modal-exit" : "modal modal-anim";
 
   return (
     <div
-      className="modal-backdrop"
+      className={backdropClass}
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
@@ -43,7 +62,7 @@ export default function Modal({ open, title, onClose, footer, children }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
-        className="modal"
+        className={panelClass}
         ref={dialogRef}
         tabIndex={-1}
         style={{ outline: "none" }}

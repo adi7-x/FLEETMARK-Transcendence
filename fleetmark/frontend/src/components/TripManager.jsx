@@ -390,12 +390,12 @@ const TripManager = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                 <thead>
                   <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                    <th style={{ padding: '15px' }}>Date & Time</th>
-                    <th style={{ padding: '15px' }}>Route</th>
-                    <th style={{ padding: '15px' }}>Bus & Driver</th>
-                    <th style={{ padding: '15px' }}>Seats</th>
-                    <th style={{ padding: '15px' }}>Status</th>
-                    <th style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
+                    <th scope="col" style={{ padding: '15px' }}>Date & Time</th>
+                    <th scope="col" style={{ padding: '15px' }}>Route</th>
+                    <th scope="col" style={{ padding: '15px' }}>Bus & Driver</th>
+                    <th scope="col" style={{ padding: '15px' }}>Seats</th>
+                    <th scope="col" style={{ padding: '15px' }}>Status</th>
+                    <th scope="col" style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>

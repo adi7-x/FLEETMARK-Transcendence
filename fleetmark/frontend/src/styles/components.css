@@ -482,14 +482,20 @@
 
 /* ── Skeleton loading ───────────────────────────────── */
 .skeleton {
-  background: var(--surface2);
+  background: linear-gradient(
+    90deg,
+    var(--surface2) 0%,
+    var(--border) 15%,
+    var(--surface2) 30%
+  );
+  background-size: 400% 100%;
   border-radius: var(--radius-sm);
-  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation: skeleton-shimmer 2s infinite ease-in-out;
 }
 
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.45; }
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .skeleton-text {
@@ -537,4 +543,198 @@
   font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+/* ── Student mobile bottom nav ─────────────────────── */
+.student-bottom-nav {
+  display: none; /* hidden on desktop */
+}
+
+@media (max-width: 768px) {
+  .student-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    z-index: 150;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  /* Make room for bottom nav */
+  .layout-content-student {
+    padding-bottom: 88px !important;
+  }
+}
+
+.student-bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: color 0.18s ease, background 0.18s ease;
+  position: relative;
+  min-width: 56px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.student-bottom-nav-item:active {
+  background: var(--surface2);
+}
+
+.student-bottom-nav-item.active {
+  color: var(--blue);
+}
+
+.student-bottom-nav-item .material-symbols-outlined {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.student-bottom-nav-item.active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1;
+}
+
+.student-bottom-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* ── Notification bell pulse ───────────────────────── */
+.bell-badge-pulse {
+  animation: bell-badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes bell-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+}
+
+/* ── Student quick-action pills ────────────────────── */
+.student-quick-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.student-quick-action:hover {
+  background: var(--blue-light);
+  border-color: var(--blue-border);
+  color: var(--blue);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.student-quick-action:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Skeleton loading cards ────────────────────────── */
+.skeleton-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-bar {
+  background: linear-gradient(
+    90deg,
+    var(--surface2) 0%,
+    var(--border) 15%,
+    var(--surface2) 30%
+  );
+  background-size: 400% 100%;
+  border-radius: 6px;
+  animation: skeleton-shimmer 2s infinite ease-in-out;
+}
+
+/* ── Tab bar (reusable for notifs) ─────────────────── */
+.tab-bar {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface2);
+  width: fit-content;
+}
+
+.tab-bar-item {
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: var(--font-semibold);
+  font-size: var(--font-size-base);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tab-bar-item.active {
+  background: var(--blue-light);
+  color: var(--blue);
+}
+
+.tab-bar-item:hover:not(.active) {
+  background: var(--surface3);
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 5px;
+  line-height: 1;
+}
+
+.tab-badge-blue {
+  background: var(--blue-light);
+  color: var(--blue);
+}
+
+.tab-badge-red {
+  background: var(--red-light);
+  color: var(--red);
 }

@@ -15,7 +15,7 @@ export default function SkeletonTable({ cols = 4, rows = 5, style }) {
         <thead>
           <tr>
             {Array.from({ length: cols }).map((_, i) => (
-              <th key={i}>
+              <th scope="col" key={i}>
                 <div
                   className="skeleton"
                   style={{ height: 10, width: widths[i % widths.length], borderRadius: 4 }}

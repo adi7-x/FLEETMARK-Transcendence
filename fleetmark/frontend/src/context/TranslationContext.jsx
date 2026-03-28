@@ -5,7 +5,9 @@ const translations = {
     navDashboard: "Dashboard",
     navTrips: "Trips",
     navBuses: "Buses",
+    navStations: "Stations",
     navRoutes: "Routes",
+    navAnnouncements: "Announcements",
     navDrivers: "Drivers",
     navHistory: "History",
     navReports: "Reports",
@@ -15,13 +17,18 @@ const translations = {
     navReserve: "Reserve Seat",
     navLogout: "Log Out",
     navNewTrip: "New Trip",
-    navNewBooking: "New Booking"
+    navNewBooking: "New Booking",
+    navTracker: "Track Bus",
+    navProfile: "Profile",
+    navNotifications: "Notifications"
   },
   fr: {
     navDashboard: "Tableau de bord",
     navTrips: "Trajets",
     navBuses: "Bus",
+    navStations: "Stations",
     navRoutes: "Itinéraires",
+    navAnnouncements: "Annonces",
     navDrivers: "Chauffeurs",
     navHistory: "Historique",
     navReports: "Rapports",
@@ -31,13 +38,18 @@ const translations = {
     navReserve: "Réserver",
     navLogout: "Déconnexion",
     navNewTrip: "Nouveau Trajet",
-    navNewBooking: "Nouvelle Réservation"
+    navNewBooking: "Nouvelle Réservation",
+    navTracker: "Suivre le bus",
+    navProfile: "Profil",
+    navNotifications: "Notifications"
   },
   ar: {
     navDashboard: "لوحة القيادة",
     navTrips: "الرحلات",
     navBuses: "الحافلات",
+    navStations: "المحطات",
     navRoutes: "الخطوط",
+    navAnnouncements: "الإعلانات",
     navDrivers: "السائقين",
     navHistory: "السجل",
     navReports: "التقارير",
@@ -47,7 +59,10 @@ const translations = {
     navReserve: "حجز مقعد",
     navLogout: "تسجيل الخروج",
     navNewTrip: "رحلة جديدة",
-    navNewBooking: "حجز جديد"
+    navNewBooking: "حجز جديد",
+    navTracker: "تتبع الحافلة",
+    navProfile: "الملف الشخصي",
+    navNotifications: "الإشعارات"
   }
 };
 

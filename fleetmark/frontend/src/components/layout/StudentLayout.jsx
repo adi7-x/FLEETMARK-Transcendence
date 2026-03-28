@@ -4,11 +4,27 @@ import UserIdentity from "../ui/UserIdentity";
 import Button from "../ui/Button";
 import DarkModeToggle from "../ui/DarkModeToggle";
 
+function computeUnreadCount() {
+  try {
+    const all = JSON.parse(localStorage.getItem("fleetmark_announcements") || "[]");
+    const dismissed = JSON.parse(localStorage.getItem("fleetmark_dismissed_announcements") || "[]");
+    return all.filter((a) => !dismissed.includes(a.id)).length;
+  } catch { return 0; }
+}
+
 const navItems = [
   { id: "dashboard", labelKey: "navDashboard", path: "/passenger",           icon: "dashboard"  },
   { id: "bookings",  labelKey: "navBookings",  path: "/passenger/reserve",   icon: "event_seat" },
   { id: "history",   labelKey: "navHistory",   path: "/passenger/history",   icon: "history"    },
   { id: "settings",  labelKey: "navSettings",  path: "/passenger/settings",  icon: "settings"   },
+];
+
+/* Bottom nav tabs for mobile */
+const bottomNavItems = [
+  { id: "dashboard",     labelKey: "navDashboard",      path: "/passenger",               icon: "dashboard"     },
+  { id: "bookings",      labelKey: "navBookings",       path: "/passenger/reserve",       icon: "event_seat"    },
+  { id: "notifications", labelKey: "navNotifications",  path: "/passenger/notifications", icon: "notifications" },
+  { id: "profile",       labelKey: "navProfile",        path: "/passenger/settings",      icon: "person"        },
 ];
 
 export default function StudentLayout({
@@ -23,15 +39,32 @@ export default function StudentLayout({
   const login       = user?.login_42 || "student";
   const { t }       = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [unread, setUnread] = useState(() => computeUnreadCount());
 
-  // Close drawer on route change
+  // Recalculate unread + close drawer on route change
   useEffect(() => {
+    setUnread(computeUnreadCount());
     setDrawerOpen(false);
   }, [activePath]);
+
+  useEffect(() => {
+    const recalc = () => setUnread(computeUnreadCount());
+    window.addEventListener("fleetmark:refresh", recalc);
+    window.addEventListener("storage", recalc);
+    return () => {
+      window.removeEventListener("fleetmark:refresh", recalc);
+      window.removeEventListener("storage", recalc);
+    };
+  }, []);
 
   function handleNavigate(path) {
     onNavigate?.(path);
     setDrawerOpen(false);
+  }
+
+  function isActive(itemPath) {
+    if (itemPath === "/passenger") return activePath === "/passenger";
+    return activePath.startsWith(itemPath);
   }
 
   const sidebar = (
@@ -63,9 +96,7 @@ export default function StudentLayout({
       {/* Nav */}
       <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
         {navItems.map((item) => {
-          const active =
-            activePath === item.path ||
-            (item.id === "dashboard" && activePath === "/passenger");
+          const active = isActive(item.path);
           return (
             <button
               key={item.id}
@@ -126,7 +157,9 @@ export default function StudentLayout({
   );
 
   return (
-    <div className="layout-root">
+    <div className="layout-root" style={{ '--accent': '#818cf8', '--accent2': '#a78bfa', '--accent-light': 'rgba(99,102,241,0.1)', '--accent-mid': 'rgba(99,102,241,0.15)', '--accent-border': 'rgba(99,102,241,0.28)', '--accent-glow': 'rgba(99,102,241,0.25)', '--accent-dim': '#ede9fe' }}>
+      {/* Skip-to-content link — Fix 3c */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       {/* Mobile backdrop */}
       {drawerOpen && (
         <button
@@ -137,13 +170,12 @@ export default function StudentLayout({
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — desktop only */}
       <aside className={`layout-sidebar${drawerOpen ? " drawer-open" : ""}`}>
         {sidebar}
       </aside>
 
-      {/* Main */}
-      <main className="layout-main">
+      <main id="main-content" className="layout-main">
         <header className="layout-header">
           {/* Hamburger — CSS hides this on desktop */}
           <button
@@ -157,7 +189,7 @@ export default function StudentLayout({
 
           {/* Title + station pill */}
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flex: "1 1 auto", minWidth: 0 }}>
-            <h1
+            <div
               style={{
                 margin: 0,
                 fontSize: "var(--font-size-xl)",
@@ -168,9 +200,11 @@ export default function StudentLayout({
                 textOverflow: "ellipsis",
                 lineHeight: 1,
               }}
+              role="heading"
+              aria-level="2"
             >
               {pageTitle}
-            </h1>
+            </div>
             {/* Station pill */}
             <div
               style={{
@@ -205,6 +239,49 @@ export default function StudentLayout({
 
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
             <DarkModeToggle />
+            {/* Notification bell */}
+            <button
+              type="button"
+              onClick={() => onNavigate?.("/passenger/notifications")}
+              style={{
+                position: "relative",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                padding: 6,
+                display: "grid",
+                placeItems: "center",
+              }}
+              title="Notifications"
+              aria-label="Notifications"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: "var(--text-secondary)" }}>
+                notifications
+              </span>
+              {unread > 0 && (
+                <span
+                  className="bell-badge-pulse"
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    minWidth: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    background: "var(--red)",
+                    color: "#fff",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: "grid",
+                    placeItems: "center",
+                    padding: "0 4px",
+                    lineHeight: 1,
+                  }}
+                >
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </button>
             <Button
               variant="ghost"
               size="sm"
@@ -221,6 +298,52 @@ export default function StudentLayout({
           {children}
         </div>
       </main>
+
+      {/* ── Mobile bottom navigation ──────────── */}
+      <nav className="student-bottom-nav">
+        {bottomNavItems.map((item) => {
+          const active = isActive(item.path);
+          const isNotif = item.id === "notifications";
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`student-bottom-nav-item${active ? " active" : ""}`}
+              onClick={() => handleNavigate(item.path)}
+              aria-label={t(item.labelKey)}
+            >
+              <span className="material-symbols-outlined" style={{ position: "relative" }}>
+                {item.icon}
+                {/* Unread badge on notification icon */}
+                {isNotif && unread > 0 && (
+                  <span
+                    className="bell-badge-pulse"
+                    style={{
+                      position: "absolute",
+                      top: -4,
+                      right: -8,
+                      minWidth: 14,
+                      height: 14,
+                      borderRadius: 7,
+                      background: "var(--red)",
+                      color: "#fff",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      display: "grid",
+                      placeItems: "center",
+                      padding: "0 3px",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </span>
+              <span className="student-bottom-nav-label">{t(item.labelKey)}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

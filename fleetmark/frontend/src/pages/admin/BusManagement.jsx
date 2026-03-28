@@ -1,12 +1,24 @@
 import React, { useEffect, useState } from "react";
-import Spinner from "../../components/ui/Spinner";
+import SkeletonTable from "../../components/ui/SkeletonTable";
+import SetupProgress from "../../components/ui/SetupProgress";
+import AdminEmptyState from "../../components/ui/AdminEmptyState";
 import { API_BASE } from "../../services/api";
 
 
-const emptyForm = { name: "", plate: "", seat_capacity: "" };
+const emptyForm = { name: "", plate: "", seat_capacity: "", station_id: "" };
+
+function getBusStations() {
+  try { return JSON.parse(localStorage.getItem("fleetmark_bus_stations") || "{}"); } catch { return {}; }
+}
+function setBusStation(busId, stationId) {
+  const map = getBusStations();
+  if (stationId) map[busId] = stationId; else delete map[busId];
+  localStorage.setItem("fleetmark_bus_stations", JSON.stringify(map));
+}
 
 export default function BusManagement() {
   const [buses, setBuses] = useState([]);
+  const [stationsList, setStationsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -22,10 +34,15 @@ export default function BusManagement() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE}/buses/`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Failed to load buses.");
-      const data = await res.json();
-      setBuses(Array.isArray(data) ? data : []);
+      const [bRes, sRes] = await Promise.all([
+        fetch(`${API_BASE}/buses/`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/stations/`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (!bRes.ok) throw new Error("Failed to load buses.");
+      const bData = await bRes.json();
+      const sData = sRes.ok ? await sRes.json() : [];
+      setBuses(Array.isArray(bData) ? bData : []);
+      setStationsList(Array.isArray(sData) ? sData : []);
     } catch (err) {
       setError(err.message || "Unable to load buses.");
     } finally {
@@ -38,6 +55,13 @@ export default function BusManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const onRefresh = () => load();
+    window.addEventListener("fleetmark:refresh", onRefresh);
+    return () => window.removeEventListener("fleetmark:refresh", onRefresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
@@ -46,10 +70,12 @@ export default function BusManagement() {
 
   function openEdit(bus) {
     setEditing(bus);
+    const bsMap = getBusStations();
     setForm({
       name: bus.name || "",
       plate: bus.plate || "",
       seat_capacity: String(bus.seat_capacity ?? ""),
+      station_id: bus.station ? String(bus.station) : (bsMap[bus.id] || ""),
     });
     setOpen(true);
   }
@@ -69,11 +95,15 @@ export default function BusManagement() {
       };
       const endpoint = editing ? `${API_BASE}/buses/${editing.id}/` : `${API_BASE}/buses/`;
       const method = editing ? "PUT" : "POST";
+      if (form.station_id) payload.station = Number(form.station_id);
       const res = await fetch(endpoint, { method, headers, body: JSON.stringify(payload) });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.detail || data?.plate?.[0] || `Save failed (${res.status}).`);
       }
+      const saved = await res.json().catch(() => null);
+      const busId = saved?.id || editing?.id;
+      if (busId) setBusStation(busId, form.station_id);
       setOpen(false);
       await load();
     } catch (err) {
@@ -94,11 +124,16 @@ export default function BusManagement() {
     }
   }
 
-  if (loading) return <Spinner text="Loading buses..." />;
+  if (loading) return (
+    <div style={{ display: "grid", gap: "var(--section-gap)" }}>
+      <SkeletonTable cols={5} rows={5} />
+    </div>
+  );
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-4)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
+      <SetupProgress currentStep="buses" done={buses.length > 0} />
+      <div className="animate-in" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ margin: 0 }}>Bus Management</h1>
         <button
           type="button"
@@ -124,22 +159,37 @@ export default function BusManagement() {
 
       {error ? <p style={{ color: "var(--red)", margin: 0 }}>{error}</p> : null}
 
-      <div style={{ background: "color-mix(in srgb, var(--surface) 30%, transparent)", border: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderRadius: 12, overflow: "hidden" }}>
+      {!buses.length ? (
+        <AdminEmptyState variant="buses" onAction={openCreate} />
+      ) : (
+      <div className="animate-in" style={{ background: "color-mix(in srgb, var(--surface) 30%, transparent)", border: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid color-mix(in srgb, var(--line) 30%, transparent)" }}>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Name</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Plate</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Seat Capacity</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "right" }}>Actions</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Name</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Plate</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Seat Capacity</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Serves</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {buses.map((bus) => (
-              <tr key={bus.id} style={{ borderTop: "1px solid color-mix(in srgb, var(--line) 20%, transparent)" }}>
+            {buses.map((bus) => {
+              const bsMap = getBusStations();
+                const stId = bus.station || bsMap[bus.id];
+              const stName = stId ? stationsList.find((s) => String(s.id) === String(stId))?.name : null;
+              return (
+              <tr key={bus.id} className="animate-in" style={{ borderTop: "1px solid color-mix(in srgb, var(--line) 20%, transparent)" }}>
                 <td style={{ padding: "12px 16px", fontWeight: 700 }}>{bus.name}</td>
                 <td className="mono" style={{ padding: "12px 16px" }}>{bus.plate}</td>
                 <td className="mono" style={{ padding: "12px 16px" }}>{bus.seat_capacity}</td>
+                <td style={{ padding: "12px 16px" }}>
+                  {stName ? (
+                    <span style={{ background: "var(--green-bg, var(--blue-bg))", color: "var(--green, var(--blue))", borderRadius: 4, padding: "2px 8px", fontSize: 12, fontWeight: 600 }}>{stName}</span>
+                  ) : (
+                    <span style={{ color: "var(--mid)", fontSize: 13 }}>—</span>
+                  )}
+                </td>
                 <td style={{ padding: "12px 16px", textAlign: "right" }}>
                   <div style={{ display: "inline-flex", gap: 6 }}>
                     <button type="button" onClick={() => openEdit(bus)} style={{ border: "none", background: "transparent", color: "var(--mid)", cursor: "pointer" }}>
@@ -151,19 +201,16 @@ export default function BusManagement() {
                   </div>
                 </td>
               </tr>
-            ))}
-            {!buses.length ? (
-              <tr>
-                <td colSpan={4} style={{ padding: "24px 16px", textAlign: "center", color: "var(--mid)" }}>No buses registered.</td>
-              </tr>
-            ) : null}
+              );
+            })}
+
           </tbody>
         </table>
       </div>
+      )}
 
-      {/* Create / Edit Modal */}
       {open ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(520px,92vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
             <h3 style={{ margin: 0 }}>{editing ? "Edit Bus" : "Add New Bus"}</h3>
             <div style={{ display: "grid", gap: "var(--space-2)" }}>
@@ -195,6 +242,19 @@ export default function BusManagement() {
                 style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}
               />
             </div>
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <label style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--mid)", fontWeight: 700 }}>Primary Station</label>
+              <select
+                value={form.station_id}
+                onChange={(e) => setForm((p) => ({ ...p, station_id: e.target.value }))}
+                style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}
+              >
+                <option value="">None</option>
+                {stationsList.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: "var(--space-2)" }}>
               <button type="button" onClick={() => setOpen(false)} style={{ border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
                 Cancel
@@ -209,7 +269,7 @@ export default function BusManagement() {
 
       {/* Delete Confirmation Modal */}
       {confirmDelete ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(420px,90vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
             <h3 style={{ margin: 0 }}>Delete Bus</h3>
             <p style={{ margin: 0, color: "var(--mid)" }}>

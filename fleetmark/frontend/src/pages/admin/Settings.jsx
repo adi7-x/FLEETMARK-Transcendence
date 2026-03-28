@@ -28,7 +28,7 @@ export default function Settings() {
   ];
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-6)", maxWidth: 640 }}>
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-6)", maxWidth: 640 }}>
       {/* Info banner */}
       <div className="alert alert-info" style={{ alignItems: "flex-start" }}>
         <span

@@ -3,6 +3,57 @@ import { auth } from "../services/api";
 import LanguageSwitcher from "../components/shared/LanguageSwitcher";
 import DarkModeToggle from "../components/ui/DarkModeToggle";
 import FleetmarkLogoAnimation from "../components/ui/FleetmarkLogoAnimation";
+import useInView from "../hooks/useInView";
+
+function RevealSection({ id, children, style, className = "" }) {
+  const [ref, visible] = useInView();
+  return (
+    <section
+      id={id}
+      ref={ref}
+      className={`reveal-section${visible ? " is-visible" : ""} ${className}`.trim()}
+      style={style}
+    >
+      {children}
+    </section>
+  );
+}
+
+/** Stylized bus + road — hero visual (Fix 8b) */
+function HeroBusIllustration() {
+  return (
+    <svg
+      width="min(100%, 420)"
+      height="140"
+      viewBox="0 0 420 140"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      style={{ maxWidth: 420, marginTop: 8 }}
+    >
+      <defs>
+        <linearGradient id="hero-road" x1="0" y1="0" x2="420" y2="0">
+          <stop offset="0%" stopColor="var(--blue)" stopOpacity="0.12" />
+          <stop offset="100%" stopColor="var(--orbit, #7e22ce)" stopOpacity="0.08" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="108" width="420" height="4" rx="2" fill="url(#hero-road)" />
+      <line x1="0" y1="110" x2="420" y2="110" stroke="var(--line2)" strokeWidth="1" strokeDasharray="10 14" opacity="0.6" />
+      <g style={{ transform: "translateX(0)" }}>
+        <rect x="120" y="52" width="180" height="48" rx="10" fill="var(--surface)" stroke="var(--blue)" strokeWidth="1.5" />
+        <rect x="132" y="62" width="36" height="16" rx="3" fill="color-mix(in srgb, var(--blue) 15%, transparent)" />
+        <rect x="176" y="62" width="36" height="16" rx="3" fill="color-mix(in srgb, var(--blue) 15%, transparent)" />
+        <rect x="220" y="62" width="36" height="16" rx="3" fill="color-mix(in srgb, var(--blue) 15%, transparent)" />
+        <rect x="264" y="62" width="24" height="16" rx="3" fill="color-mix(in srgb, var(--blue) 15%, transparent)" />
+        <circle cx="150" cy="108" r="10" fill="var(--surface2)" stroke="var(--blue)" strokeWidth="1.5" />
+        <circle cx="270" cy="108" r="10" fill="var(--surface2)" stroke="var(--blue)" strokeWidth="1.5" />
+        <circle cx="300" cy="36" r="5" fill="var(--amber)" opacity="0.85" />
+        <circle cx="320" cy="28" r="3" fill="var(--mid)" opacity="0.5" />
+        <circle cx="100" cy="44" r="2.5" fill="var(--mid)" opacity="0.35" />
+      </g>
+    </svg>
+  );
+}
 
 /** English-first landing copy; fr/ar reuse English for long-form sections where not translated. */
 const copy = {
@@ -223,12 +274,14 @@ const wrap = { maxWidth: 1200, margin: "0 auto", padding: "0 32px" };
 
 function scrollToHow(e) {
   e.preventDefault();
-  document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
+  document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
 }
 
 export default function Landing() {
   const [lang, setLang] = useState(localStorage.getItem("fleetmark_lang") || "en");
   const [error, setError] = useState("");
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const text = useMemo(() => copy[lang] || copy.en, [lang]);
 
   useEffect(() => {
@@ -251,6 +304,27 @@ export default function Landing() {
 
   return (
     <div style={{ width: "100%", minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
+      {/* Splash — logo animation only; hero uses static wordmark (Fix 4a) */}
+      {splashVisible ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "grid",
+            placeItems: "center",
+            background: "var(--bg)",
+          }}
+        >
+          <FleetmarkLogoAnimation
+            onBusDone={() => {
+              setSplashVisible(false);
+              setNavBusVisible(true);
+            }}
+          />
+        </div>
+      ) : null}
+
       <nav
         style={{
           position: "fixed",
@@ -266,7 +340,6 @@ export default function Landing() {
         <div style={{ ...wrap, height: 56, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
             <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em", display: "inline-flex", alignItems: "center", gap: 8 }}>
-              {/* Mini bus appears here when animation bus vanishes */}
               <svg
                 width="26" height="12" viewBox="0 0 92 42" fill="none"
                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
@@ -284,16 +357,37 @@ export default function Landing() {
                 <circle cx="18" cy="34" r="6.5" fill="var(--card)" stroke="var(--blue)" strokeWidth="1.2"/>
                 <circle cx="62" cy="34" r="6.5" fill="var(--card)" stroke="var(--blue)" strokeWidth="1.2"/>
               </svg>
-              <span style={{ color: navBusVisible ? "var(--blue)" : "inherit", transition: "color 0.5s ease" }}>Fleetmark</span>
+              <span style={{ color: navBusVisible ? "var(--blue)" : "inherit", transition: "color 0.5s ease" }} dir="ltr">Fleetmark</span>
             </span>
-            <div style={{ display: "flex", gap: 24, fontSize: 14, color: "var(--mid)" }}>
-              <a href="#how">{text.navHow}</a>
+            <div className="landing-nav-links" style={{ display: "flex", gap: 24, fontSize: 14, color: "var(--mid)" }}>
+              <a href="#how-it-works">{text.navHow}</a>
               <a href="#schedule">{text.navSchedule}</a>
               <a href="#team">{text.navTeam}</a>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <LanguageSwitcher variant="full" value={lang} onChange={setLang} />
+            <button
+              type="button"
+              className="landing-hamburger"
+              aria-expanded={menuOpen}
+              aria-label="Open menu"
+              onClick={() => setMenuOpen((o) => !o)}
+              style={{
+                display: "none",
+                placeItems: "center",
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                border: "1px solid var(--line2)",
+                background: "var(--surface)",
+                color: "var(--ink)",
+                cursor: "pointer",
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>{menuOpen ? "close" : "menu"}</span>
+            </button>
+
+            <LanguageSwitcher variant="limited" value={lang} onChange={setLang} />
             <DarkModeToggle />
             <button
               type="button"
@@ -314,19 +408,27 @@ export default function Landing() {
         </div>
       </nav>
 
+      <div className={`landing-mobile-menu${menuOpen ? " open" : ""}`}>
+        <a href="#how-it-works" onClick={() => setMenuOpen(false)}>{text.navHow}</a>
+        <a href="#schedule" onClick={() => setMenuOpen(false)}>{text.navSchedule}</a>
+        <a href="#team" onClick={() => setMenuOpen(false)}>{text.navTeam}</a>
+        <a href="#get-started" onClick={() => setMenuOpen(false)}>{text.gsEyebrow}</a>
+        <button type="button" onClick={() => { setMenuOpen(false); login(); }}>{text.navSignIn}</button>
+      </div>
+
       <main>
-        {/* FIX 1 — Hero */}
+        {/* Hero — static wordmark + headline focus (Fix 4a, 4d, 2a) */}
         <section
           style={{
             width: "100%",
             backgroundColor: "var(--bg)",
-            minHeight: "100vh",
+            minHeight: "min(100vh, 900px)",
             display: "grid",
             placeItems: "center",
             textAlign: "center",
             position: "relative",
-            paddingTop: 128,
-            paddingBottom: 96,
+            paddingTop: 88,
+            paddingBottom: 72,
             backgroundImage:
               "linear-gradient(to right, color-mix(in srgb, var(--ink) 3%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--ink) 3%, transparent) 1px, transparent 1px)",
             backgroundSize: "40px 40px",
@@ -347,10 +449,21 @@ export default function Landing() {
             }}
           />
           <div>
-            {/* Animated logo — appears first, brand moment */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
-              <FleetmarkLogoAnimation onBusDone={() => setNavBusVisible(true)} />
+            <div
+              dir="ltr"
+              style={{
+                fontFamily: "Inter, system-ui, sans-serif",
+                fontSize: "clamp(18px, 4vw, 28px)",
+                fontWeight: 800,
+                letterSpacing: "-0.04em",
+                color: "var(--ink)",
+                marginBottom: 20,
+                lineHeight: 1,
+              }}
+            >
+              FLEETMARK
             </div>
+            <HeroBusIllustration />
             <div
               className="mono"
               style={{
@@ -361,7 +474,8 @@ export default function Landing() {
                 borderRadius: 999,
                 padding: "6px 14px",
                 color: "var(--green)",
-                marginBottom: 28,
+                marginBottom: 20,
+                marginTop: 8,
                 fontSize: 12,
                 fontWeight: 700,
               }}
@@ -369,7 +483,7 @@ export default function Landing() {
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 12px color-mix(in srgb, var(--green) 50%, transparent)" }} />
               {text.heroBadge}
             </div>
-            <h1 style={{ margin: 0, fontSize: 80, lineHeight: 1, letterSpacing: "-0.05em", textShadow: "0 0 30px color-mix(in srgb, var(--blue) 30%, transparent)" }}>
+            <h1 style={{ margin: 0, fontSize: "clamp(36px, 10vw, 80px)", lineHeight: 1.05, letterSpacing: "-0.05em", textShadow: "0 0 30px color-mix(in srgb, var(--blue) 30%, transparent)" }}>
               <span style={{ color: "var(--hero-gradient-start)" }}>{text.heroA}</span>
               <br />
               <span
@@ -439,8 +553,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* FIX 2 — How it works */}
-        <section id="how" style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)" }}>
+        <RevealSection id="how-it-works" className="landing-two-col" style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)" }}>
           <div style={{ ...wrap, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start" }}>
           <div>
             <span className="mono" style={{ color: "var(--blue)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, display: "block", marginBottom: 16 }}>
@@ -514,10 +627,9 @@ export default function Landing() {
             </div>
           </div>
           </div>
-        </section>
+        </RevealSection>
 
-        {/* FIX 3 — Schedule */}
-        <section id="schedule" style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)", borderTop: "1px solid color-mix(in srgb, var(--ink) 5%, transparent)" }}>
+        <RevealSection id="schedule" style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)", borderTop: "1px solid color-mix(in srgb, var(--ink) 5%, transparent)" }}>
           <div style={wrap}>
           <div style={{ marginBottom: 40 }}>
             <span className="mono" style={{ color: "var(--blue)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, display: "block", marginBottom: 16 }}>
@@ -526,7 +638,7 @@ export default function Landing() {
             <h2 style={{ fontSize: 42, margin: "0 0 16px", letterSpacing: "-0.02em" }}>{text.schedTitle}</h2>
             <p style={{ margin: 0, color: "var(--mid)", fontSize: 15, lineHeight: 1.6, maxWidth: 560 }}>{text.schedDesc}</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 24 }}>
+          <div className="landing-schedule-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 24 }}>
             {text.schedBlocks.map((block) => (
               <article
                 key={block.label}
@@ -576,10 +688,9 @@ export default function Landing() {
             ))}
           </div>
           </div>
-        </section>
+        </RevealSection>
 
-        {/* FIX 4 — Team */}
-        <section id="team" style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)" }}>
+        <RevealSection id="team" style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)" }}>
           <div style={wrap}>
           <span className="mono" style={{ color: "var(--blue)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, display: "block", marginBottom: 16 }}>
             {text.teamEyebrow}
@@ -681,10 +792,9 @@ export default function Landing() {
             })}
           </div>
           </div>
-        </section>
+        </RevealSection>
 
-        {/* FIX 5 — Get started */}
-        <section style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)" }}>
+        <RevealSection id="get-started" className="landing-two-col" style={{ width: "100%", padding: "96px 0", backgroundColor: "var(--bg)" }}>
           <div style={{ ...wrap, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "start" }}>
           <div>
             <span className="mono" style={{ color: "var(--blue)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, display: "block", marginBottom: 16 }}>
@@ -702,72 +812,89 @@ export default function Landing() {
               ))}
             </ul>
           </div>
-          <div style={{ background: "var(--inverse-surface)", color: "var(--on-inverse)", borderRadius: 16, padding: 36, border: "1px solid color-mix(in srgb, var(--on-inverse) 8%, transparent)" }}>
+          <div
+            style={{
+              borderRadius: 16,
+              padding: 2,
+              background: "linear-gradient(135deg, color-mix(in srgb, var(--blue) 55%, transparent), color-mix(in srgb, var(--orbit, #7e22ce) 45%, transparent))",
+              boxShadow: "0 0 40px color-mix(in srgb, var(--blue) 18%, transparent)",
+            }}
+          >
             <div
               style={{
-                width: 48,
-                height: 48,
-                background: "var(--hero-gradient-start)",
-                color: "var(--on-inverse)",
-                borderRadius: 8,
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 800,
-                fontSize: 22,
-                marginBottom: 20,
-                border: "1px solid color-mix(in srgb, var(--on-inverse) 12%, transparent)",
+                background: "var(--surface-2, var(--surface2))",
+                color: "var(--ink)",
+                borderRadius: 14,
+                padding: 34,
+                border: "1px solid color-mix(in srgb, var(--line) 40%, transparent)",
               }}
             >
-              42
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  background: "color-mix(in srgb, var(--blue) 15%, transparent)",
+                  color: "var(--blue)",
+                  borderRadius: 8,
+                  display: "grid",
+                  placeItems: "center",
+                  fontWeight: 800,
+                  fontSize: 22,
+                  marginBottom: 20,
+                  border: "1px solid color-mix(in srgb, var(--blue) 25%, transparent)",
+                }}
+              >
+                42
+              </div>
+              <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "var(--text-primary)" }}>{text.gsCardTitle}</h3>
+              <p style={{ color: "var(--mid)", marginTop: 10, fontSize: 14, lineHeight: 1.55 }}>
+                {text.gsCardSub}
+              </p>
+              <button
+                type="button"
+                onClick={login}
+                style={{
+                  marginTop: 20,
+                  width: "100%",
+                  border: "1px solid color-mix(in srgb, var(--blue) 35%, transparent)",
+                  borderRadius: 8,
+                  padding: "14px 16px",
+                  background: "color-mix(in srgb, var(--blue) 12%, transparent)",
+                  color: "var(--blue)",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                {text.gsBtn}
+              </button>
+              <p className="mono" style={{ margin: "12px 0 0", fontSize: 11, color: "var(--dim)", textAlign: "center" }}>
+                {text.gsSecured}
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 20 }}>
+                {text.gsChips.map((chip) => (
+                  <span
+                    key={chip}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: "6px 12px",
+                      borderRadius: 999,
+                      background: "var(--surface-3, var(--surface3))",
+                      border: "1px solid var(--line2)",
+                      color: "var(--ink2)",
+                    }}
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+              <p className="mono" style={{ margin: "24px 0 0", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--dim)", textAlign: "center" }}>
+                {text.gsFootTag}
+              </p>
             </div>
-            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{text.gsCardTitle}</h3>
-            <p style={{ color: "color-mix(in srgb, var(--on-inverse) 55%, transparent)", marginTop: 10, fontSize: 14, lineHeight: 1.55 }}>
-              {text.gsCardSub}
-            </p>
-            <button
-              type="button"
-              onClick={login}
-              style={{
-                marginTop: 20,
-                width: "100%",
-                border: "none",
-                borderRadius: 8,
-                padding: "14px 16px",
-                background: "var(--blue-bg)",
-                color: "var(--blue)",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              {text.gsBtn}
-            </button>
-            <p className="mono" style={{ margin: "12px 0 0", fontSize: 11, color: "color-mix(in srgb, var(--on-inverse) 45%, transparent)", textAlign: "center" }}>
-              {text.gsSecured}
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 20 }}>
-              {text.gsChips.map((chip) => (
-                <span
-                  key={chip}
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "6px 12px",
-                    borderRadius: 999,
-                    background: "color-mix(in srgb, var(--on-inverse) 6%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--on-inverse) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--on-inverse) 85%, transparent)",
-                  }}
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
-            <p className="mono" style={{ margin: "24px 0 0", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--on-inverse) 50%, transparent)", textAlign: "center" }}>
-              {text.gsFootTag}
-            </p>
           </div>
           </div>
-        </section>
+        </RevealSection>
       </main>
 
       {/* FIX 6 — Footer */}
@@ -781,7 +908,7 @@ export default function Landing() {
         <div style={{ ...wrap, padding: "48px 32px", display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em" }}>Fleetmark</div>
+            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.03em" }} dir="ltr">Fleetmark</div>
             <p className="mono" style={{ margin: "8px 0 0", color: "var(--mid)", fontSize: 11, letterSpacing: "0.06em" }}>
               {text.footerSub}
             </p>

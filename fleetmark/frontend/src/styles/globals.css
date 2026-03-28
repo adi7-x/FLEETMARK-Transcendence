@@ -7,6 +7,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, fill 0.3s ease;
 }
 
 html {
@@ -42,6 +43,20 @@ body {
   }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spinner-border {
+  display: inline-block;
+  border: 2px solid color-mix(in srgb, var(--accent, var(--blue)) 25%, transparent);
+  border-top-color: var(--accent, var(--blue));
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  vertical-align: middle;
+}
+
 .mono {
   font-family: "JetBrains Mono", monospace;
 }
@@ -73,4 +88,251 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fix 1a — Entrance animations (fadeInUp with stagger)
+═══════════════════════════════════════════════════════ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: fadeInUp 0.5s ease both;
+}
+.animate-in:nth-child(1)  { animation-delay: 0s; }
+.animate-in:nth-child(2)  { animation-delay: 0.08s; }
+.animate-in:nth-child(3)  { animation-delay: 0.16s; }
+.animate-in:nth-child(4)  { animation-delay: 0.24s; }
+.animate-in:nth-child(5)  { animation-delay: 0.32s; }
+.animate-in:nth-child(6)  { animation-delay: 0.40s; }
+.animate-in:nth-child(7)  { animation-delay: 0.48s; }
+.animate-in:nth-child(8)  { animation-delay: 0.56s; }
+.animate-in:nth-child(9)  { animation-delay: 0.64s; }
+.animate-in:nth-child(10) { animation-delay: 0.72s; }
+
+/* ═══════════════════════════════════════════════════════
+   Fix 1b — Scroll-triggered reveal for landing sections
+═══════════════════════════════════════════════════════ */
+.reveal-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fix 1c — Modal enter/exit animations
+═══════════════════════════════════════════════════════ */
+@keyframes backdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes modalScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-backdrop-anim {
+  animation: backdropFade 0.22s ease-out forwards;
+}
+.modal-anim {
+  animation: modalScale 0.22s ease-out forwards;
+}
+@keyframes backdropFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes modalScaleOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+.modal-backdrop-exit {
+  animation: backdropFadeOut 0.18s ease-in forwards;
+}
+.modal-exit {
+  animation: modalScaleOut 0.18s ease-in forwards;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fix 1e — Animated checkmark for reservation success
+═══════════════════════════════════════════════════════ */
+@keyframes checkmarkDraw {
+  from { stroke-dashoffset: 56; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes checkmarkCircle {
+  from { stroke-dashoffset: 166; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes checkmarkFade {
+  0%   { opacity: 0; transform: scale(0.8); }
+  30%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.success-checkmark {
+  animation: checkmarkFade 0.4s ease both;
+}
+.success-checkmark circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: checkmarkCircle 0.6s ease-out 0.1s forwards;
+}
+.success-checkmark path {
+  stroke-dasharray: 56;
+  stroke-dashoffset: 56;
+  animation: checkmarkDraw 0.4s ease-out 0.5s forwards;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fix 1f — Onboarding tour slide transitions
+═══════════════════════════════════════════════════════ */
+.tour-step-enter {
+  opacity: 0;
+  transform: translateX(40px);
+}
+.tour-step-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.tour-step-exit {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  position: absolute;
+  inset: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fix 3a — Reduced motion preference
+═══════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fix 3c — Skip-to-content link
+═══════════════════════════════════════════════════════ */
+.skip-link {
+  position: absolute;
+  top: -50px;
+  left: 0;
+  background: var(--accent, var(--blue));
+  color: #fff;
+  padding: 8px 16px;
+  z-index: 9999;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 0 0 var(--radius-sm) 0;
+  transition: top 0.2s ease;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Fix 2 — Mobile responsiveness additions
+═══════════════════════════════════════════════════════ */
+
+/* 2c — Stack two-column landing grids on mobile */
+@media (max-width: 768px) {
+  .landing-two-col > div {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+  }
+  .landing-schedule-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .landing-team-scroll {
+    gap: 16px !important;
+  }
+  .landing-team-scroll article {
+    min-width: 260px !important;
+    min-height: 360px !important;
+  }
+  .landing-nav-links {
+    display: none !important;
+  }
+  .landing-hamburger {
+    display: grid !important;
+  }
+}
+
+/* 2d — Student trip card stacks on mobile */
+@media (max-width: 768px) {
+  .trip-card-inner {
+    grid-template-columns: 1fr !important;
+  }
+  .trip-card-map-panel {
+    display: none !important;
+  }
+}
+
+/* 2e — Stat grid stacks on small screens */
+@media (max-width: 640px) {
+  .stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 2f — Admin trips table becomes cards on mobile */
+@media (max-width: 768px) {
+  .trips-table-desktop {
+    display: none !important;
+  }
+  .trips-cards-mobile {
+    display: grid !important;
+  }
+}
+.trips-cards-mobile {
+  display: none;
+  gap: var(--space-3);
+}
+
+/* Landing mobile menu overlay */
+.landing-mobile-menu {
+  display: none;
+  position: fixed;
+  inset: 0;
+  top: 56px;
+  z-index: 45;
+  background: color-mix(in srgb, var(--bg) 97%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 24px 32px;
+  flex-direction: column;
+  gap: 8px;
+}
+.landing-mobile-menu.open {
+  display: flex;
+}
+.landing-mobile-menu a,
+.landing-mobile-menu button {
+  display: block;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+.landing-mobile-menu a:hover,
+.landing-mobile-menu button:hover {
+  background: var(--surface2);
+}
+.landing-hamburger {
+  display: none;
 }

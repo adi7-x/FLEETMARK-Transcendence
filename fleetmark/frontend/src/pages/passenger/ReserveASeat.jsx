@@ -1,9 +1,43 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import Spinner from "../../components/ui/Spinner";
-import EmptyState from "../../components/ui/EmptyState";
+import SuccessCheckmark from "../../components/ui/SuccessCheckmark";
+import AdminEmptyState from "../../components/ui/AdminEmptyState";
 import { API_BASE, getUser } from "../../services/api";
 
-
+/** Skeleton matching reserve page layout (Fix 7a) */
+function ReserveSeatSkeleton() {
+  return (
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="skeleton-bar" style={{ width: 180, height: 22, borderRadius: 6 }} />
+        <div className="skeleton-bar" style={{ width: 34, height: 34, borderRadius: "50%" }} />
+      </div>
+      {[1, 2].map((i) => (
+        <div
+          key={i}
+          className="skeleton-card"
+          style={{
+            padding: "var(--space-5)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "var(--space-4)",
+            borderRadius: "var(--radius-md)",
+          }}
+        >
+          <div style={{ flex: 1, display: "grid", gap: 10 }}>
+            <div className="skeleton-bar" style={{ width: "55%", height: 18 }} />
+            <div className="skeleton-bar" style={{ width: "40%", height: 14 }} />
+            <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+              <div className="skeleton-bar" style={{ width: 80, height: 12 }} />
+              <div className="skeleton-bar" style={{ width: 70, height: 12 }} />
+            </div>
+          </div>
+          <div className="skeleton-bar" style={{ width: 120, height: 40, borderRadius: "var(--radius-sm)" }} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ReserveASeat() {
   const user = useMemo(() => getUser(), []);
@@ -14,6 +48,8 @@ export default function ReserveASeat() {
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  /** null | 'check' (1.5s SVG) | 'toast' — Fix 1e */
+  const [successPhase, setSuccessPhase] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -41,7 +77,6 @@ export default function ReserveASeat() {
     load();
   }, [load]);
 
-  // Listen for header refresh button
   useEffect(() => {
     window.addEventListener("fleetmark:refresh", load);
     return () => window.removeEventListener("fleetmark:refresh", load);
@@ -51,6 +86,7 @@ export default function ReserveASeat() {
     setSavingId(tripId);
     setError("");
     setToast("");
+    setSuccessPhase(null);
     try {
       const token = localStorage.getItem("fleetmark_access");
       const res = await fetch(`${API_BASE}/reservations/`, {
@@ -63,8 +99,15 @@ export default function ReserveASeat() {
       });
       if (!res.ok) throw new Error("Reservation failed.");
       setReservedTripIds((prev) => [...new Set([...prev, tripId])]);
-      setToast("Seat reserved successfully.");
-      setTimeout(() => setToast(""), 2300);
+      setSuccessPhase("check");
+      setTimeout(() => {
+        setSuccessPhase("toast");
+        setToast("reserved");
+        setTimeout(() => {
+          setToast("");
+          setSuccessPhase(null);
+        }, 2200);
+      }, 1500);
     } catch (err) {
       setError(err.message || "Unable to reserve this trip.");
     } finally {
@@ -80,12 +123,33 @@ export default function ReserveASeat() {
     return "var(--green)";
   }
 
-  if (loading) return <Spinner text="Loading available trips..." />;
-  if (error && !trips.length) return <EmptyState icon="⚠️" title="Trip feed unavailable" subtitle={error} />;
+  if (loading) return <ReserveSeatSkeleton />;
+
+  if (error && !trips.length) return <AdminEmptyState variant="trips" onAction={() => window.location.reload()} />;
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-4)" }}>
-      {/* Header with refresh */}
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
+      {successPhase === "check" ? (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "grid",
+            placeItems: "center",
+            background: "color-mix(in srgb, var(--bg) 75%, transparent)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <div style={{ display: "grid", placeItems: "center", gap: 16 }}>
+            <SuccessCheckmark size={72} />
+            <span className="mono" style={{ fontSize: 12, color: "var(--mid)", fontWeight: 600 }}>Confirming your seat…</span>
+          </div>
+        </div>
+      ) : null}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ margin: 0, fontSize: 20 }}>Available Trips</h2>
         <button
@@ -107,15 +171,27 @@ export default function ReserveASeat() {
         </button>
       </div>
 
-      {toast ? (
-        <div style={{ border: "1px solid var(--green)", color: "var(--green)", background: "var(--green-bg)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}>
-          {toast}
+      {successPhase === "toast" && toast === "reserved" ? (
+        <div
+          className="animate-in"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--green) 30%, transparent)",
+            background: "var(--surface)",
+            borderRadius: "var(--radius-md)",
+            padding: "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ color: "var(--green)", fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+          <p style={{ margin: 0, fontWeight: 700, color: "var(--ink)", fontSize: 15 }}>Seat reserved successfully!</p>
         </div>
       ) : null}
       {error ? <div style={{ color: "var(--red)" }}>{error}</div> : null}
 
       {!trips.length ? (
-        <EmptyState icon="🚌" title="No upcoming trips" subtitle="Try again later or update your home station." />
+        <AdminEmptyState variant="trips" onAction={() => (window.location.href = "/passenger/settings")} />
       ) : (
         trips.map((trip) => {
           const alreadyReserved = reservedTripIds.includes(trip.id);
@@ -126,6 +202,7 @@ export default function ReserveASeat() {
           return (
             <article
               key={trip.id}
+              className="animate-in"
               style={{
                 border: "1px solid var(--line)",
                 borderRadius: "var(--radius-md)",
@@ -170,7 +247,7 @@ export default function ReserveASeat() {
               </div>
               <button
                 type="button"
-                disabled={alreadyReserved || isFull || savingId === trip.id}
+                disabled={alreadyReserved || isFull || savingId === trip.id || successPhase === "check"}
                 onClick={() => reserve(trip.id)}
                 style={{
                   minWidth: 120,
@@ -181,9 +258,17 @@ export default function ReserveASeat() {
                   color: alreadyReserved ? "var(--green)" : isFull ? "var(--red)" : "var(--blue)",
                   cursor: alreadyReserved || isFull ? "not-allowed" : "pointer",
                   fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                {savingId === trip.id ? "Loading..." : state}
+                {savingId === trip.id ? (
+                  <span className="spinner-border" style={{ width: 16, height: 16, borderWidth: 2 }} aria-hidden />
+                ) : (
+                  state
+                )}
               </button>
             </article>
           );

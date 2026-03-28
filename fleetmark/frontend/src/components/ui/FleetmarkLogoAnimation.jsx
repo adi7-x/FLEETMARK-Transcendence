@@ -376,6 +376,7 @@ export default function FleetmarkLogoAnimation({
       <div
         className={`fla-root${className ? ` ${className}` : ""}`}
         style={style}
+        dir="ltr"
       >
         {/* ── Wordmark ──────────────────────────── */}
         <div className="fla-wordmark-area">

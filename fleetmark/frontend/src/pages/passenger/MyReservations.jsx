@@ -1,7 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import Spinner from "../../components/ui/Spinner";
 import EmptyState from "../../components/ui/EmptyState";
 import { API_BASE, getUser } from "../../services/api";
+
+function ReservationsSkeleton() {
+  return (
+    <div style={{ display: "grid", gap: "var(--space-4)" }}>
+      <div className="skeleton" style={{ height: 38, width: 220, borderRadius: 999 }} />
+      {[1, 2, 3].map((i) => (
+        <div key={i} style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div className="skeleton" style={{ height: 14, width: 160, borderRadius: 4 }} />
+            <div className="skeleton" style={{ height: 12, width: 120, borderRadius: 4 }} />
+          </div>
+          <div className="skeleton" style={{ height: 36, width: 70, borderRadius: "var(--radius-sm)" }} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 
 
@@ -60,11 +76,11 @@ export default function MyReservations() {
   }
 
   const current = tab === "upcoming" ? upcoming : past;
-  if (loading) return <Spinner text="Loading reservations..." />;
+  if (loading) return <ReservationsSkeleton />;
   if (error && !current.length) return <EmptyState icon="⚠️" title="Reservations unavailable" subtitle={error} />;
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-4)" }}>
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
       {/* Header with tabs and refresh */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "inline-flex", border: "1px solid var(--line2)", borderRadius: "999px", overflow: "hidden" }}>
@@ -111,7 +127,47 @@ export default function MyReservations() {
       {error ? <p style={{ color: "var(--red)", margin: 0 }}>{error}</p> : null}
 
       {!current.length ? (
-        <EmptyState icon="🎫" title={tab === "upcoming" ? "No upcoming reservations" : "No past reservations"} />
+        <div
+          style={{
+            border: "1px dashed var(--border)",
+            borderRadius: 14,
+            background: "var(--surface)",
+            padding: "var(--space-8) var(--space-6)",
+            textAlign: "center",
+            display: "grid",
+            placeItems: "center",
+            gap: "var(--space-2)",
+          }}
+        >
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--surface2)", display: "grid", placeItems: "center" }}>
+            <span style={{ fontSize: "1.4rem", lineHeight: 1 }}>🎫</span>
+          </div>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
+            {tab === "upcoming" ? "No upcoming reservations" : "No past reservations"}
+          </h3>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--mid)", maxWidth: 300 }}>
+            {tab === "upcoming" ? "Book a seat to secure your spot on the next shuttle." : "Your completed rides will appear here."}
+          </p>
+          {tab === "upcoming" && (
+            <button
+              type="button"
+              onClick={() => window.location.href = "/passenger/reserve"}
+              style={{
+                border: "1px solid var(--blue-border, var(--blue))",
+                background: "var(--blue-light)",
+                color: "var(--blue)",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontWeight: 700,
+                cursor: "pointer",
+                fontSize: 12,
+                marginTop: 6,
+              }}
+            >
+              Book a Seat →
+            </button>
+          )}
+        </div>
       ) : (
         current.map((item) => {
           const departure = item.trip_details?.departure_datetime || null;
@@ -147,7 +203,7 @@ export default function MyReservations() {
 
       {/* Cancel Confirmation Modal */}
       {confirmCancel ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(420px,90vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
             <h3 style={{ margin: 0 }}>Cancel Reservation</h3>
             <p style={{ margin: 0, color: "var(--mid)" }}>

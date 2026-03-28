@@ -22,7 +22,7 @@
   --ink:  #0f172a;   /* primary text  */
   --ink2: #1e293b;   /* slightly softer */
   --mid:  #475569;   /* secondary — richer than old #64748b */
-  --dim:  #94a3b8;   /* tertiary / placeholders */
+  --dim:  #64748b;   /* tertiary / placeholders — WCAG AA compliant */
 
   --text-primary:   var(--ink);
   --text-secondary: var(--mid);
@@ -164,7 +164,7 @@
   --ink:  #e6edf3;
   --ink2: #c9d1d9;
   --mid:  #8b949e;
-  --dim:  #484f58;
+  --dim:  #8b949e;   /* WCAG AA compliant on dark bg */
 
   --text-primary:   var(--ink);
   --text-secondary: var(--mid);

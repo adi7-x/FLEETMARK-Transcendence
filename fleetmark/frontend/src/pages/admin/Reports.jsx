@@ -1,6 +1,42 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Spinner from "../../components/ui/Spinner";
+import useCountUp from "../../hooks/useCountUp";
+import AdminEmptyState from "../../components/ui/AdminEmptyState";
 import { API_BASE } from "../../services/api";
+
+function ReportStatCard({ label, value }) {
+  const display = useCountUp(value);
+  return (
+    <article style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)" }}>
+      <p style={{ margin: 0, color: "var(--mid)", fontSize: 13 }}>{label}</p>
+      <h3 className="mono" style={{ margin: "var(--space-2) 0 0", fontSize: 30 }}>{display}</h3>
+    </article>
+  );
+}
+
+function ReportsSkeleton() {
+  return (
+    <div style={{ display: "grid", gap: "var(--space-5)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "var(--space-4)" }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)", display: "grid", gap: 8 }}>
+            <div className="skeleton" style={{ height: 12, width: "50%", borderRadius: 4 }} />
+            <div className="skeleton" style={{ height: 28, width: "40%", borderRadius: 4 }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)", display: "grid", gap: 12 }}>
+        <div className="skeleton" style={{ height: 16, width: 160, borderRadius: 4 }} />
+        {[1, 2, 3].map((i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "140px 1fr 40px", alignItems: "center", gap: "var(--space-3)" }}>
+            <div className="skeleton" style={{ height: 12, width: "70%", borderRadius: 4 }} />
+            <div className="skeleton" style={{ height: 10, width: "100%", borderRadius: 999 }} />
+            <div className="skeleton" style={{ height: 12, width: 24, borderRadius: 4 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 
 export default function Reports() {
@@ -8,25 +44,32 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const token = localStorage.getItem("fleetmark_access");
-        const res = await fetch(`${API_BASE}/reports/`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) throw new Error("Failed to load reports.");
-        const data = await res.json();
-        if (active) setReports(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (active) setError(err.message || "Unable to load reports.");
-      } finally {
-        if (active) setLoading(false);
-      }
+  async function loadReports() {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("fleetmark_access");
+      const res = await fetch(`${API_BASE}/reports/`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed to load reports.");
+      const data = await res.json();
+      setReports(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Unable to load reports.");
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => {
-      active = false;
-    };
+  }
+
+  useEffect(() => {
+    loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onRefresh = () => loadReports();
+    window.addEventListener("fleetmark:refresh", onRefresh);
+    return () => window.removeEventListener("fleetmark:refresh", onRefresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stats = useMemo(() => {
@@ -38,21 +81,18 @@ export default function Reports() {
     return { byCat, max };
   }, [reports]);
 
-  if (loading) return <Spinner text="Loading reports..." />;
+  if (loading) return <ReportsSkeleton />;
+
+  const totalReports = reports.length;
+  const pending = reports.filter((r) => r.status === "pending").length;
+  const resolved = reports.filter((r) => r.status === "resolved").length;
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-5)" }}>
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "var(--space-4)" }}>
-        {[
-          ["Total reports", reports.length],
-          ["Pending", reports.filter((r) => r.status === "pending").length],
-          ["Resolved", reports.filter((r) => r.status === "resolved").length],
-        ].map(([label, value]) => (
-          <article key={label} style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)" }}>
-            <p style={{ margin: 0, color: "var(--mid)", fontSize: 13 }}>{label}</p>
-            <h3 className="mono" style={{ margin: "var(--space-2) 0 0", fontSize: 30 }}>{value}</h3>
-          </article>
-        ))}
+    <div className="animate-in" style={{ display: "grid", gap: "var(--space-5)" }}>
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: "var(--space-4)" }}>
+        <ReportStatCard label="Total reports" value={totalReports} />
+        <ReportStatCard label="Pending" value={pending} />
+        <ReportStatCard label="Resolved" value={resolved} />
       </section>
 
       <section style={{ border: "1px solid var(--line2)", borderRadius: "var(--radius-md)", background: "var(--surface)", padding: "var(--space-5)" }}>
@@ -70,7 +110,7 @@ export default function Reports() {
               </div>
             ))
           ) : (
-            <p style={{ color: "var(--mid)" }}>No data available.</p>
+            <AdminEmptyState variant="reports" />
           )}
         </div>
       </section>

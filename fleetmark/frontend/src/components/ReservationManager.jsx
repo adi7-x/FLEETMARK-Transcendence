@@ -198,12 +198,12 @@ const ReservationManager = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '820px' }}>
               <thead>
                 <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                  <th style={{ padding: '14px 15px' }}>📅 Trip Date &amp; Time</th>
-                  <th style={{ padding: '14px 15px' }}>🗺️ Route</th>
-                  <th style={{ padding: '14px 15px' }}>👤 Student</th>
-                  <th style={{ padding: '14px 15px' }}>🚐 Bus</th>
-                  <th style={{ padding: '14px 15px' }}>🕐 Booked At</th>
-                  <th style={{ padding: '14px 15px' }}>Status</th>
+                  <th scope="col" style={{ padding: '14px 15px' }}>📅 Trip Date &amp; Time</th>
+                  <th scope="col" style={{ padding: '14px 15px' }}>🗺️ Route</th>
+                  <th scope="col" style={{ padding: '14px 15px' }}>👤 Student</th>
+                  <th scope="col" style={{ padding: '14px 15px' }}>🚐 Bus</th>
+                  <th scope="col" style={{ padding: '14px 15px' }}>🕐 Booked At</th>
+                  <th scope="col" style={{ padding: '14px 15px' }}>Status</th>
                 </tr>
               </thead>
               <tbody>

@@ -42,7 +42,7 @@ export default function Onboarding() {
 
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--ink)", padding: "var(--space-6)" }}>
-      <section style={{ width: "100%", maxWidth: 760, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-lg)", padding: "var(--space-7)" }}>
+      <section className="animate-in" style={{ width: "100%", maxWidth: 760, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-lg)", padding: "var(--space-7)" }}>
         <h1 style={{ margin: 0, fontSize: 34, letterSpacing: "-0.03em" }}>Choose your home station</h1>
         <p style={{ color: "var(--mid)", marginTop: "var(--space-2)" }}>
           Select the station that should be used for your available trip feed.

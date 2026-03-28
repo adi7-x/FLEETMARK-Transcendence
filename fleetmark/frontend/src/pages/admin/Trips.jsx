@@ -1,10 +1,48 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Spinner from "../../components/ui/Spinner";
+import SkeletonTable from "../../components/ui/SkeletonTable";
+import SetupProgress from "../../components/ui/SetupProgress";
+import AdminEmptyState from "../../components/ui/AdminEmptyState";
+import useCountUp from "../../hooks/useCountUp";
 import { API_BASE } from "../../services/api";
 
 
 const emptyForm = { route: "", bus: "", driver: "", departure_datetime: "" };
+
+/** Stat card with count-up — must be a separate component (rules of hooks). */
+function TripStatCard({ label, numericTarget, suffix, decimals = 0 }) {
+  const n = numericTarget == null || Number.isNaN(Number(numericTarget)) ? null : Number(numericTarget);
+  const animated = useCountUp(n ?? 0, 650);
+  const display =
+    n == null ? "—" : decimals > 0 ? animated.toFixed(decimals) : String(animated);
+
+  return (
+    <article
+      style={{
+        background: "var(--surface)",
+        border: "1px solid color-mix(in srgb, var(--line) 30%, transparent)",
+        borderRadius: 8,
+        padding: "16px 16px 20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        minHeight: 108,
+      }}
+    >
+      <span className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--mid)" }}>
+        {label}
+      </span>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <span className="mono" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>{display}</span>
+        {suffix ? (
+          <span className="mono" style={{ fontSize: 11, color: "var(--mid)", paddingBottom: 2 }}>
+            {suffix}
+          </span>
+        ) : null}
+      </div>
+    </article>
+  );
+}
 
 export default function Trips() {
   const location = useLocation();
@@ -167,24 +205,56 @@ export default function Trips() {
     }
   }
 
-  if (loading) return <Spinner text="Loading trips..." />;
+  if (loading) return (
+    <div style={{ display: "grid", gap: "var(--section-gap)" }}>
+      <SkeletonTable cols={6} rows={6} />
+    </div>
+  );
 
   return (
-    <div style={{ position: "relative", display: "grid", gap: 26 }}>
+    <div className="animate-in" style={{ position: "relative", display: "grid", gap: 26 }}>
+      <SetupProgress currentStep="trips" done={trips.filter(t => !t.archived_at).length > 0} />
       <style>{`
         .trip-row .row-actions { opacity: 0; transition: opacity 0.2s; }
         .trip-row:hover .row-actions { opacity: 1; }
       `}</style>
-      <div style={{ marginBottom: 6 }}>
-        <span className="mono" style={{ color: "var(--blue)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.2em", fontWeight: 700 }}>
-          System Registry
-        </span>
-        <h2 style={{ margin: "8px 0 0", fontSize: 42, lineHeight: 1.1, letterSpacing: "-0.03em" }}>
-          Active Transit Shuttles
-        </h2>
+      <div className="animate-in" style={{ marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <span className="mono" style={{ color: "var(--blue)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.2em", fontWeight: 700 }}>
+            System Registry
+          </span>
+          <h2 style={{ margin: "8px 0 0", fontSize: 42, lineHeight: 1.1, letterSpacing: "-0.03em" }}>
+            Active Transit Shuttles
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={openCreate}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            background: "var(--blue)",
+            color: "#fff",
+            border: "none",
+            borderRadius: 10,
+            padding: "12px 20px",
+            fontWeight: 700,
+            cursor: "pointer",
+            fontSize: 14,
+            boxShadow: "var(--shadow-md), 0 4px 12px color-mix(in srgb, var(--blue) 30%, transparent)",
+            transition: "transform 0.15s ease",
+          }}
+          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
+          onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>add_box</span>
+          New Trip
+        </button>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: "14px 0", borderTop: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--line) 30%, transparent)" }}>
+      <div className="animate-in" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: "14px 0", borderTop: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--line) 30%, transparent)" }}>
         <div style={{ display: "flex", alignItems: "center", background: "var(--surface)", padding: 4, borderRadius: 8 }}>
           {[
             ["all", "All"],
@@ -230,16 +300,20 @@ export default function Trips() {
       </div>
       {error ? <p style={{ color: "var(--red)", margin: 0 }}>{error}</p> : null}
 
-      <div style={{ background: "color-mix(in srgb, var(--surface) 30%, transparent)", border: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderRadius: 12, overflow: "hidden" }}>
+      {!filtered.length && trips.length === 0 ? (
+        <AdminEmptyState variant="trips" onAction={openCreate} />
+      ) : (
+      <>
+      <div className="animate-in trips-table-desktop" style={{ background: "color-mix(in srgb, var(--surface) 30%, transparent)", border: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderRadius: 12, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid color-mix(in srgb, var(--line) 30%, transparent)" }}>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Departure</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Route</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Bus & Driver</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Capacity</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Status</th>
-              <th style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "right" }}>Actions</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Departure</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Route</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Bus & Driver</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Capacity</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Status</th>
+              <th scope="col" style={{ padding: "14px 16px", fontSize: 10, color: "var(--mid)", textTransform: "uppercase", letterSpacing: "0.14em", textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -352,7 +426,59 @@ export default function Trips() {
         </table>
       </div>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 16, marginTop: 16 }}>
+      <div className="animate-in trips-cards-mobile">
+        {filtered.map((trip) => {
+          const rowStatus = getRowStatus(trip);
+          const cap = capacityForTrip(trip);
+          const left = Number(trip.seats_left ?? 0);
+          const used = cap > 0 ? Math.max(0, cap - left) : 0;
+          const b = buses.find((item) => item.id === trip.bus);
+          const d = drivers.find((item) => item.id === trip.driver);
+          return (
+            <div key={trip.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16, display: "grid", gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>{trip.route_name || trip.route}</div>
+                  <div className="mono" style={{ color: "var(--blue)", fontSize: 13, marginTop: 4 }}>
+                    {new Date(trip.departure_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                </div>
+                <span
+                  className="mono"
+                  style={{ borderRadius: 4, padding: "2px 6px", fontSize: 9, textTransform: "uppercase", fontWeight: 700, 
+                  border: rowStatus === "full" || rowStatus === "near_full" ? "1px solid color-mix(in srgb, var(--red) 40%, transparent)" : "1px solid color-mix(in srgb, var(--blue) 40%, transparent)",
+                  background: rowStatus === "full" || rowStatus === "near_full" ? "var(--red-bg)" : "var(--blue-light)",
+                  color: rowStatus === "full" || rowStatus === "near_full" ? "var(--red)" : "var(--blue)" }}
+                >
+                  {rowStatus}
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13, background: "var(--surface2)", padding: 12, borderRadius: 8 }}>
+                <div>
+                  <span style={{ color: "var(--mid)", display: "block", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>Bus</span>
+                  {b?.name || trip.bus_name || "—"}
+                </div>
+                <div>
+                  <span style={{ color: "var(--mid)", display: "block", fontSize: 10, textTransform: "uppercase", fontWeight: 700 }}>Capacity</span>
+                  {cap > 0 ? `${used} / ${cap}` : "—"}
+                </div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: "var(--mid)" }}>{d?.name || trip.driver_name || "No driver"}</div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <span className="material-symbols-outlined" onClick={() => openEdit(trip)} style={{ fontSize: 18, color: "var(--mid)", cursor: "pointer" }}>edit</span>
+                  {!trip.archived_at && <span className="material-symbols-outlined" onClick={() => setConfirmArchive(trip)} style={{ fontSize: 18, color: "var(--mid)", cursor: "pointer" }}>package_2</span>}
+                  <span className="material-symbols-outlined" onClick={() => setConfirmDelete(trip)} style={{ fontSize: 18, color: "var(--red)", cursor: "pointer" }}>delete</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      </>
+      )}
+
+      <section className="animate-in" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginTop: 16 }}>
         {(() => {
           const activeTrips = trips.filter((t) => !t.archived_at);
           const totalCap = activeTrips.reduce((sum, t) => sum + capacityForTrip(t), 0);
@@ -361,45 +487,21 @@ export default function Trips() {
             const left = Number(t.seats_left ?? 0);
             return sum + (cap > 0 ? Math.max(0, cap - left) : 0);
           }, 0);
-          const utilPct = totalCap > 0 ? ((totalUsed / totalCap) * 100).toFixed(1) : "—";
+          const utilNum = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : null;
           const totalReserved = totalUsed;
           return [
-            ["Fleet Utilization", String(utilPct), totalCap > 0 ? "%" : ""],
-            ["Booked Seats", String(totalReserved), "active"],
-            ["Drivers", String(drivers.length), "registered"],
-            ["Active Trips", String(activeTrips.length), "tonight"],
+            { label: "Fleet Utilization", numericTarget: utilNum, suffix: totalCap > 0 ? "%" : "", decimals: 0 },
+            { label: "Booked Seats", numericTarget: totalReserved, suffix: "active", decimals: 0 },
+            { label: "Drivers", numericTarget: drivers.length, suffix: "registered", decimals: 0 },
+            { label: "Active Trips", numericTarget: activeTrips.length, suffix: "tonight", decimals: 0 },
           ];
-        })().map(([label, value, suffix]) => (
-          <article
-            key={label}
-            style={{
-              background: "var(--surface)",
-              border: "1px solid color-mix(in srgb, var(--line) 30%, transparent)",
-              borderRadius: 8,
-              padding: "16px 16px 20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              minHeight: 108,
-            }}
-          >
-            <span className="mono" style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--mid)" }}>
-              {label}
-            </span>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-              <span className="mono" style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1 }}>{value}</span>
-              {suffix ? (
-                <span className="mono" style={{ fontSize: 11, color: "var(--mid)", paddingBottom: 2 }}>
-                  {suffix}
-                </span>
-              ) : null}
-            </div>
-          </article>
+        })().map((item) => (
+          <TripStatCard key={item.label} label={item.label} numericTarget={item.numericTarget} suffix={item.suffix} decimals={item.decimals} />
         ))}
       </section>
 
       {open ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
           <div style={{ width: "min(520px,92vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
             <h3 style={{ margin: 0 }}>{editing ? "Edit trip" : "Create trip"}</h3>
             <select value={form.route} onChange={(e) => setForm((p) => ({ ...p, route: e.target.value }))} style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}>
@@ -441,7 +543,7 @@ export default function Trips() {
 
       {/* Delete Confirmation Modal */}
       {confirmDelete ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 30 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 30 }}>
           <div style={{ width: "min(420px,90vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
             <h3 style={{ margin: 0 }}>Delete Trip</h3>
             <p style={{ margin: 0, color: "var(--mid)" }}>
@@ -461,7 +563,7 @@ export default function Trips() {
 
       {/* Archive Confirmation Modal */}
       {confirmArchive ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 30 }}>
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 30 }}>
           <div style={{ width: "min(420px,90vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)" }}>
             <h3 style={{ margin: 0 }}>Archive Trip</h3>
             <p style={{ margin: 0, color: "var(--mid)" }}>

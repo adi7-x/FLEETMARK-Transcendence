@@ -143,9 +143,9 @@ const StationManager = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
-                <th style={{ padding: '15px' }}>Name</th>
-                <th style={{ padding: '15px' }}>Created</th>
-                <th style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
+                <th scope="col" style={{ padding: '15px' }}>Name</th>
+                <th scope="col" style={{ padding: '15px' }}>Created</th>
+                <th scope="col" style={{ padding: '15px', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>

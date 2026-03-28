@@ -1,4 +1,4 @@
-from datetime import time, timedelta
+from datetime import timedelta
 
 from django.db.models import Count, F
 from django.utils.timezone import localtime, now
@@ -36,41 +36,11 @@ class AvailableTripListView(APIView):
 			return Response({'detail': 'station_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
 		now_dt = localtime(now())
-		
-		# Prevent API access entirely if "now" is outside the 8 PM - 6 AM shift window
-		if time(6, 0) <= now_dt.time() < time(20, 0):
-			return Response([])
-		
-		# 1. Find the earliest future non-archived trip
-		first_trip = Trip.objects.filter(
-			route__route_stations__station_id=station_id,
-			departure_datetime__gte=now_dt,
-			archived_at__isnull=True,
-		).order_by('departure_datetime').first()
 
-		if not first_trip:
-			return Response([])
-
-		# 2. Determine the "Logical Shift Start Date"
-		# A "Night Shift" starts at 20:00 and ends at 06:00 the next day.
-		# If the next trip is between 00:00 and 06:00, it belongs to the previous calendar day's shift.
-		t_dt = first_trip.departure_datetime
-		if t_dt.time() < time(6, 0):
-			logical_start_date = t_dt.date() - timedelta(days=1)
-		else:
-			logical_start_date = t_dt.date()
-
-		# 3. Define the Window: 20:00 on start date to 06:00 the next day
-		start_of_window = now_dt.replace(
-			year=logical_start_date.year, month=logical_start_date.month, day=logical_start_date.day,
-			hour=20, minute=0, second=0, microsecond=0
-		)
-		end_of_window = (start_of_window + timedelta(days=1)).replace(hour=6, minute=0)
-
+		# Return all upcoming non-archived trips for this station (not yet departed, seats available)
 		trips = (
 			Trip.objects.filter(
 				route__route_stations__station_id=station_id,
-				departure_datetime__range=(start_of_window, end_of_window),
 				departure_datetime__gte=now_dt,
 				archived_at__isnull=True,
 			)

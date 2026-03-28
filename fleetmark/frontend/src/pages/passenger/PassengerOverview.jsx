@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../components/ui/EmptyState";
 import RouteMap from "../../components/ui/RouteMap";
@@ -116,7 +116,7 @@ function PassengerStatCard({ label, value, sub, icon, color, countUp }) {
 
 export default function PassengerOverview() {
   const navigate = useNavigate();
-  const user = useMemo(() => getUser(), []);
+  const [user, setUser] = useState(() => getUser());
   const [trips, setTrips] = useState([]);
   const [buses, setBuses] = useState([]);
   const [reservations, setReservations] = useState([]);
@@ -125,6 +125,7 @@ export default function PassengerOverview() {
   const aliveRef = useRef(true);
 
   useEffect(() => {
+    aliveRef.current = true;
     return () => { aliveRef.current = false; };
   }, []);
 
@@ -136,39 +137,47 @@ export default function PassengerOverview() {
       if (!token) throw new Error("Please log in to view your dashboard.");
 
       const headers = { Authorization: `Bearer ${token}` };
-      const fetches = [];
-      
+
       const fetchWithTimeout = async (url) => {
         const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 3000); // 3 seconds timeout
+        const id = setTimeout(() => controller.abort(), 5000);
         try {
           const r = await fetch(url, { headers, signal: controller.signal });
           clearTimeout(id);
           return r.ok ? r.json() : [];
-        } catch (e) {
+        } catch {
           clearTimeout(id);
           return [];
         }
       };
 
-      // Trips — only if station is set
-      if (user?.station) {
-        fetches.push(fetchWithTimeout(`${API_BASE}/trips/available/?station_id=${encodeURIComponent(user.station)}`));
-      } else {
-        fetches.push(Promise.resolve([]));
+      // Fetch fresh profile in parallel — with its own timeout, never blocks
+      const mePromise = fetchWithTimeout(`${API_BASE}/auth/me/`);
+
+      // Start trips/reservations/buses using cached user while profile loads
+      let cachedUser = getUser();
+
+      const [meData, resData, busData] = await Promise.all([
+        mePromise,
+        cachedUser?.id
+          ? fetchWithTimeout(`${API_BASE}/reservations/?user_id=${encodeURIComponent(cachedUser.id)}`)
+          : Promise.resolve([]),
+        fetchWithTimeout(`${API_BASE}/buses/`),
+      ]);
+
+      // Update user if fresh profile came back
+      let activeUser = cachedUser;
+      if (meData && meData.id) {
+        localStorage.setItem("fleetmark_user", JSON.stringify(meData));
+        activeUser = meData;
+        if (aliveRef.current) setUser(meData);
       }
 
-      // Reservations — only if user id
-      if (user?.id) {
-        fetches.push(fetchWithTimeout(`${API_BASE}/reservations/?user_id=${encodeURIComponent(user.id)}`));
-      } else {
-        fetches.push(Promise.resolve([]));
-      }
+      // Fetch trips now that we have the definitive station
+      const tripData = activeUser?.station
+        ? await fetchWithTimeout(`${API_BASE}/trips/available/?station_id=${encodeURIComponent(activeUser.station)}`)
+        : [];
 
-      // Buses
-      fetches.push(fetchWithTimeout(`${API_BASE}/buses/`));
-
-      const [tripData, resData, busData] = await Promise.all(fetches);
       if (aliveRef.current) {
         setTrips(Array.isArray(tripData) ? tripData : []);
         setReservations(Array.isArray(resData) ? resData : []);
@@ -179,7 +188,7 @@ export default function PassengerOverview() {
     } finally {
       if (aliveRef.current) setLoading(false);
     }
-  }, [user?.id, user?.station]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -348,6 +357,46 @@ export default function PassengerOverview() {
       {/* ── Tonight's Trip card ───────────────── */}
       {loading ? (
         <TripCardSkeleton />
+      ) : !error && !user?.station ? (
+        /* No station set — prompt to go to Onboarding */
+        <section className="animate-in" style={{
+          border: "1px solid color-mix(in srgb, var(--amber) 30%, transparent)",
+          borderRadius: 16,
+          background: "linear-gradient(135deg, color-mix(in srgb, var(--amber) 8%, transparent) 0%, var(--surface) 100%)",
+          padding: "36px 24px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          gap: 14,
+        }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--bg)", border: "1px solid var(--border)", display: "grid", placeItems: "center" }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 26, color: "var(--amber)", fontVariationSettings: "'FILL' 1" }}>my_location</span>
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Set your home station</h3>
+            <p style={{ margin: "8px auto 0", fontSize: 14, color: "var(--mid)", maxWidth: 360, lineHeight: 1.6 }}>
+              Choose your pickup stop so we can show you upcoming buses and let you reserve a seat.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/onboarding")}
+            style={{
+              border: "none",
+              background: "var(--amber)",
+              color: "#fff",
+              borderRadius: 10,
+              padding: "12px 24px",
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 14,
+              marginTop: 4,
+            }}
+          >
+            Choose My Stop &rarr;
+          </button>
+        </section>
       ) : !error && tonightTrip ? (
         <section className="animate-in" style={{ position: "relative" }}>
           <div

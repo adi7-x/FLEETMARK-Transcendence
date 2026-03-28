@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SuccessCheckmark from "../../components/ui/SuccessCheckmark";
 import AdminEmptyState from "../../components/ui/AdminEmptyState";
 import { API_BASE, getUser } from "../../services/api";
@@ -40,7 +41,8 @@ function ReserveSeatSkeleton() {
 }
 
 export default function ReserveASeat() {
-  const user = useMemo(() => getUser(), []);
+  const navigate = useNavigate();
+  const [user, setUser] = useState(() => getUser());
   const [trips, setTrips] = useState([]);
   const [buses, setBuses] = useState([]);
   const [reservedTripIds, setReservedTripIds] = useState([]);
@@ -56,13 +58,42 @@ export default function ReserveASeat() {
       setLoading(true);
       setError("");
       const token = localStorage.getItem("fleetmark_access");
-      const [t, r, b] = await Promise.all([
-        fetch(`${API_BASE}/trips/available/?station_id=${encodeURIComponent(user.station)}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/reservations/?user_id=${encodeURIComponent(user.id)}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/buses/`, { headers: { Authorization: `Bearer ${token}` } }),
+      if (!token) throw new Error("Not authenticated.");
+
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const fetchWithTimeout = async (url, opts = {}) => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 5000);
+        try {
+          const r = await fetch(url, { ...opts, headers, signal: controller.signal });
+          clearTimeout(id);
+          return r.ok ? r.json() : [];
+        } catch {
+          clearTimeout(id);
+          return [];
+        }
+      };
+
+      // Fetch fresh profile with timeout — never blocks if API is slow
+      const meData = await fetchWithTimeout(`${API_BASE}/auth/me/`);
+      let activeUser = getUser();
+      if (meData && meData.id) {
+        localStorage.setItem("fleetmark_user", JSON.stringify(meData));
+        activeUser = meData;
+        setUser(meData);
+      }
+
+      if (!activeUser?.station) {
+        setTrips([]);
+        return;
+      }
+
+      const [tData, rData, bData] = await Promise.all([
+        fetchWithTimeout(`${API_BASE}/trips/available/?station_id=${encodeURIComponent(activeUser.station)}`),
+        fetchWithTimeout(`${API_BASE}/reservations/?user_id=${encodeURIComponent(activeUser.id)}`),
+        fetchWithTimeout(`${API_BASE}/buses/`),
       ]);
-      if (!t.ok || !r.ok || !b.ok) throw new Error("Failed to load trips.");
-      const [tData, rData, bData] = await Promise.all([t.json(), r.json(), b.json()]);
       setTrips(Array.isArray(tData) ? tData : []);
       setBuses(Array.isArray(bData) ? bData : []);
       setReservedTripIds((Array.isArray(rData) ? rData : []).map((item) => item.trip_details?.id || item.trip));
@@ -71,7 +102,7 @@ export default function ReserveASeat() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.station]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -124,6 +155,36 @@ export default function ReserveASeat() {
   }
 
   if (loading) return <ReserveSeatSkeleton />;
+
+  if (!user?.station) return (
+    <div className="animate-in" style={{ display: "grid", gap: 20, placeItems: "center", textAlign: "center", padding: "40px 0" }}>
+      <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--border)", display: "grid", placeItems: "center" }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 26, color: "var(--amber)", fontVariationSettings: "'FILL' 1" }}>my_location</span>
+      </div>
+      <div>
+        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>No home station set</h3>
+        <p style={{ margin: "8px auto 0", fontSize: 14, color: "var(--mid)", maxWidth: 340, lineHeight: 1.6 }}>
+          You need to choose your pickup stop before you can browse or reserve trips.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => navigate("/onboarding")}
+        style={{
+          border: "none",
+          background: "var(--amber)",
+          color: "#fff",
+          borderRadius: 10,
+          padding: "12px 28px",
+          fontWeight: 700,
+          cursor: "pointer",
+          fontSize: 14,
+        }}
+      >
+        Choose My Stop
+      </button>
+    </div>
+  );
 
   if (error && !trips.length) return <AdminEmptyState variant="trips" onAction={() => window.location.reload()} />;
 

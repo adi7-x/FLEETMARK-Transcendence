@@ -60,6 +60,9 @@ export default function Trips() {
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmArchive, setConfirmArchive] = useState(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkType, setBulkType] = useState("regular");
+  const [bulkForm, setBulkForm] = useState({ start_date: "", end_date: "", dates: "", route: "", bus: "", driver: "", skip_weekends: true });
 
   const token = localStorage.getItem("fleetmark_access");
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }), [token]);
@@ -161,6 +164,104 @@ export default function Trips() {
     setOpen(true);
   }
 
+  function openBulkCreate(type) {
+    setBulkType(type);
+    setBulkForm({ start_date: "", end_date: "", dates: "", route: "", bus: "", driver: "", skip_weekends: true });
+    setBulkOpen(true);
+  }
+
+  function openGenerateWeekly() {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 is Sunday, 1 is Monday
+    
+    // Find next Monday
+    const nextMonday = new Date(today);
+    nextMonday.setDate(today.getDate() + ((1 + 7 - currentDay) % 7 || 7));
+    
+    // Next Sunday is 6 days after next Monday
+    const nextSunday = new Date(nextMonday);
+    nextSunday.setDate(nextMonday.getDate() + 6);
+    
+    // Format to YYYY-MM-DD local
+    const toYMD = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    setBulkType("regular");
+    setBulkForm({ 
+      start_date: toYMD(nextMonday), 
+      end_date: toYMD(nextSunday), 
+      dates: "", 
+      route: "", 
+      bus: "", 
+      driver: "", 
+      skip_weekends: false  // Weekends matter for Mon-Sun
+    });
+    setBulkOpen(true);
+  }
+
+  async function saveBulk() {
+    setLoading(true);
+    setError("");
+
+    if (bulkType === "regular" && bulkForm.end_date) {
+      const eDate = new Date(bulkForm.end_date);
+      const today = new Date();
+      const maxDate = new Date(today);
+      maxDate.setDate(today.getDate() + 15);
+      if (eDate > maxDate) {
+         setError("You cannot generate trips further than 15 days from today.");
+         setLoading(false);
+         return;
+      }
+    }
+
+    try {
+      let datesArr = [];
+      if (bulkType === "specific" && bulkForm.dates) {
+        datesArr = bulkForm.dates.split(",").map(d => d.trim()).filter(Boolean);
+        const today = new Date();
+        const maxDate = new Date(today);
+        maxDate.setDate(today.getDate() + 15);
+        for (const dateStr of datesArr) {
+          const eDate = new Date(dateStr);
+          if (eDate > maxDate) {
+            setError("You cannot generate trips further than 15 days from today.");
+            setLoading(false);
+            return;
+          }
+        }
+      }
+      const payload = {
+        type: bulkType,
+        route: bulkForm.route,
+        bus: bulkForm.bus,
+        driver: bulkForm.driver,
+        skip_weekends: bulkForm.skip_weekends,
+        start_date: bulkForm.start_date,
+        end_date: bulkForm.end_date,
+        dates: datesArr
+      };
+      
+      const res = await fetch(`${API_BASE}/trips/bulk-generate/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Bulk generate failed.");
+      
+      setBulkOpen(false);
+      await load();
+    } catch (err) {
+      setError(err.message || "Bulk generate failed.");
+      setLoading(false);
+    }
+  }
+
   async function save() {
     try {
       const payload = { ...form, departure_datetime: new Date(form.departure_datetime).toISOString() };
@@ -172,6 +273,20 @@ export default function Trips() {
       await load();
     } catch (err) {
       setError(err.message || "Save failed.");
+    }
+  }
+
+  async function deleteAll() {
+    if (!window.confirm("⚠️ DANGER: Are you entirely sure you want to DELETE ALL trips from the system? This will wipe the active transit registry!")) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE}/trips/bulk-delete/`, { method: "DELETE", headers });
+      if (!res.ok) throw new Error("Delete all failed.");
+      await load();
+    } catch (err) {
+      setError(err.message || "Delete all failed.");
+      setLoading(false);
     }
   }
 
@@ -227,31 +342,108 @@ export default function Trips() {
             Active Transit Shuttles
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            background: "var(--blue)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 10,
-            padding: "12px 20px",
-            fontWeight: 700,
-            cursor: "pointer",
-            fontSize: 14,
-            boxShadow: "var(--shadow-md), 0 4px 12px color-mix(in srgb, var(--blue) 30%, transparent)",
-            transition: "transform 0.15s ease",
-          }}
-          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
-          onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>add_box</span>
-          New Trip
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={deleteAll}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "var(--surface)",
+              color: "var(--red)",
+              border: "1px solid color-mix(in srgb, var(--red) 30%, transparent)",
+              borderRadius: 10,
+              padding: "12px 20px",
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 14,
+              boxShadow: "var(--shadow-sm)",
+              transition: "transform 0.15s ease",
+            }}
+            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
+            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete_sweep</span>
+            Delete All
+          </button>
+          <button
+            type="button"
+            onClick={openGenerateWeekly}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "var(--surface)",
+              color: "var(--ink)",
+              border: "1px solid color-mix(in srgb, var(--line) 50%, transparent)",
+              borderRadius: 10,
+              padding: "12px 20px",
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 14,
+              boxShadow: "var(--shadow-sm)",
+              transition: "transform 0.15s ease",
+            }}
+            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
+            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>date_range</span>
+            Weekly Mon-Sun
+          </button>
+          <button
+            type="button"
+            onClick={() => openBulkCreate("regular")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "var(--surface)",
+              color: "var(--ink)",
+              border: "1px solid color-mix(in srgb, var(--line) 50%, transparent)",
+              borderRadius: 10,
+              padding: "12px 20px",
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 14,
+              boxShadow: "var(--shadow-sm)",
+              transition: "transform 0.15s ease",
+            }}
+            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
+            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>event</span>
+            Custom Dates
+          </button>
+          <button
+            type="button"
+            onClick={openCreate}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "var(--blue)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 10,
+              padding: "12px 20px",
+              fontWeight: 700,
+              cursor: "pointer",
+              fontSize: 14,
+              boxShadow: "var(--shadow-md), 0 4px 12px color-mix(in srgb, var(--blue) 30%, transparent)",
+              transition: "transform 0.15s ease",
+            }}
+            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
+            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>add_box</span>
+            New Trip
+          </button>
+        </div>
       </div>
 
       <div className="animate-in" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: "14px 0", borderTop: "1px solid color-mix(in srgb, var(--line) 30%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--line) 30%, transparent)" }}>
@@ -499,6 +691,65 @@ export default function Trips() {
           <TripStatCard key={item.label} label={item.label} numericTarget={item.numericTarget} suffix={item.suffix} decimals={item.decimals} />
         ))}
       </section>
+
+      {bulkOpen ? (
+        <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>
+          <div style={{ width: "min(520px,92vw)", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-md)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
+            <h3 style={{ margin: 0 }}>{bulkType === "regular" ? "Generate Schedule" : "Generate Specific Events"}</h3>
+            <p style={{ margin: 0, color: "var(--mid)", fontSize: 13, lineHeight: 1.4 }}>
+              {bulkType === "regular" 
+                ? "Generate night shift shuttles for the selected date range. 02:00 is automatically disabled."
+                : "Generate shuttles on specific exact dates. Type target dates separated by commas (ex. 2024-12-25, 2024-12-31)."}
+            </p>
+
+            <div style={{ background: "color-mix(in srgb, var(--blue) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--blue) 30%, transparent)", borderRadius: 8, padding: 12, display: "grid", gap: 6 }}>
+              <strong style={{ fontSize: 12, color: "var(--blue)", display: "flex", alignItems: "center", gap: 6 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>info</span>
+                Automatic Routing Applied
+              </strong>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--mid)" }}>
+                <strong>Peak Hours (21:00, 22:00, 01:00):</strong> Generates 2 trips (OCP Route + Coin Blue Route).<br/>
+                <strong>Normal Hours:</strong> Generates 1 trip (Unified Night Route).
+              </p>
+            </div>
+
+            {bulkType === "regular" ? (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>Start Date</label>
+                    <input type="date" value={bulkForm.start_date} onChange={(e) => setBulkForm((p) => ({ ...p, start_date: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>End Date</label>
+                    <input type="date" value={bulkForm.end_date} onChange={(e) => setBulkForm((p) => ({ ...p, end_date: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }} />
+                  </div>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginTop: 4 }}>
+                  <input type="checkbox" checked={bulkForm.skip_weekends} onChange={(e) => setBulkForm((p) => ({ ...p, skip_weekends: e.target.checked }))} />
+                  <span>Skip Weekends (Saturday & Sunday)</span>
+                </label>
+              </>
+            ) : (
+              <div>
+                <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>Specific Dates (comma-separated YYYY-MM-DD)</label>
+                <input type="text" placeholder="e.g. 2024-12-25, 2024-12-31" value={bulkForm.dates} onChange={(e) => setBulkForm((p) => ({ ...p, dates: e.target.value }))} style={{ width: "100%", boxSizing: "border-box", background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }} />
+              </div>
+            )}
+
+            {error && <p style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{error}</p>}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>
+              <button type="button" onClick={() => setBulkOpen(false)} style={{ border: "1px solid var(--line)", background: "var(--surface2)", color: "var(--ink)", borderRadius: 8, padding: "9px 12px", cursor: "pointer" }}>
+                Cancel
+              </button>
+              <button type="button" onClick={saveBulk} disabled={loading} style={{ border: "1px solid var(--blue-bdr)", background: "var(--blue-bg)", color: "var(--blue)", borderRadius: 8, padding: "9px 12px", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+                {loading ? "Generating..." : "Generate Schedule"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {open ? (
         <div className="modal-backdrop-anim" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "grid", placeItems: "center", zIndex: 20 }}>

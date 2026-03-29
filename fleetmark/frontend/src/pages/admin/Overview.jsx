@@ -8,6 +8,7 @@ import Badge from "../../components/ui/Badge";
 import PageHeader from "../../components/ui/PageHeader";
 import useCountUp from "../../hooks/useCountUp";
 import { API_BASE } from "../../services/api";
+import { useTranslation } from "../../context/TranslationContext";
 
 const KPI_ICONS = [
   { icon: "event_seat",    color: "var(--blue)"  },
@@ -25,6 +26,7 @@ function getSeatsStatus(left, cap) {
 
 export default function Overview() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [trips,  setTrips]  = useState([]);
   const [buses,  setBuses]  = useState([]);
   const [routes, setRoutes] = useState([]);
@@ -86,10 +88,10 @@ export default function Overview() {
 
   // Workflow guide steps — in dependency order
   const steps = [
-    { label: "Add stations", desc: "Define pick-up & drop-off points", icon: "location_on", done: stationsCount > 0, path: "/admin/stations" },
-    { label: "Register buses", desc: "Add your fleet vehicles", icon: "directions_bus", done: buses.length > 0, path: "/admin/buses", needs: "stations" },
-    { label: "Create routes", desc: "Link stations into routes", icon: "map", done: routes.length > 0, path: "/admin/routes", needs: "buses" },
-    { label: "Schedule trips", desc: "Assign bus + route + time", icon: "event_seat", done: activeTrips.length > 0, path: "/admin/trips", needs: "routes" },
+    { label: t("setupAddStations"), desc: t("setupAddStationsDesc"), icon: "location_on", done: stationsCount > 0, path: "/admin/stations" },
+    { label: t("setupAddBuses"), desc: t("setupAddBusesDesc"), icon: "directions_bus", done: buses.length > 0, path: "/admin/buses", needs: "stations" },
+    { label: t("setupAddRoutes"), desc: t("setupAddRoutesDesc"), icon: "map", done: routes.length > 0, path: "/admin/routes", needs: "buses" },
+    { label: t("setupAddTrips"), desc: t("setupAddTripsDesc"), icon: "event_seat", done: activeTrips.length > 0, path: "/admin/trips", needs: "routes" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const showGuide = doneCount < 4;
@@ -147,13 +149,13 @@ export default function Overview() {
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Getting Started</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t("setupTitle")}</h3>
               <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--mid)" }}>
-                Follow these steps in order — each one unlocks the next
+                {t("setupSubtitle")}
               </p>
             </div>
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--blue)" }}>
-              {doneCount}/{steps.length} complete
+              {doneCount}/{steps.length} {t("setupStepsComplete")}
             </span>
           </div>
           {/* Progress bar */}
@@ -233,7 +235,7 @@ export default function Overview() {
                       {step.label}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--mid)", marginTop: 2 }}>
-                      {step.done ? "Done ✓" : isLocked ? `Needs ${step.needs} first` : step.desc}
+                      {step.done ? t("setupDone") : isLocked ? t("setupNeedsFirst").replace("{{deps}}", t(`nav${step.needs.charAt(0).toUpperCase() + step.needs.slice(1)}`)) : step.desc}
                     </div>
                   </div>
                   {isNext && (

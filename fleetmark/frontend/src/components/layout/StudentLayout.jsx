@@ -3,14 +3,7 @@ import { useTranslation } from "../../context/TranslationContext";
 import UserIdentity from "../ui/UserIdentity";
 import Button from "../ui/Button";
 import DarkModeToggle from "../ui/DarkModeToggle";
-
-function computeUnreadCount() {
-  try {
-    const all = JSON.parse(localStorage.getItem("fleetmark_announcements") || "[]");
-    const dismissed = JSON.parse(localStorage.getItem("fleetmark_dismissed_announcements") || "[]");
-    return all.filter((a) => !dismissed.includes(a.id)).length;
-  } catch { return 0; }
-}
+import { API_BASE } from "../../services/api";
 
 const navItems = [
   { id: "dashboard", labelKey: "navDashboard", path: "/passenger",           icon: "dashboard"  },
@@ -39,23 +32,36 @@ export default function StudentLayout({
   const login       = user?.login_42 || "student";
   const { t }       = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [unread, setUnread] = useState(() => computeUnreadCount());
-
-  // Recalculate unread + close drawer on route change
-  useEffect(() => {
-    setUnread(computeUnreadCount());
-    setDrawerOpen(false);
-  }, [activePath]);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
-    const recalc = () => setUnread(computeUnreadCount());
-    window.addEventListener("fleetmark:refresh", recalc);
-    window.addEventListener("storage", recalc);
+    let active = true;
+    async function fetchUnread() {
+      const token = localStorage.getItem("fleetmark_access");
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_BASE}/announcements/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok && active) {
+          const data = await res.json();
+          setUnread(data.filter(a => !a.is_dismissed).length);
+        }
+      } catch { /* ignore */ }
+    }
+
+    fetchUnread();
+    window.addEventListener("fleetmark:refresh", fetchUnread);
     return () => {
-      window.removeEventListener("fleetmark:refresh", recalc);
-      window.removeEventListener("storage", recalc);
+      active = false;
+      window.removeEventListener("fleetmark:refresh", fetchUnread);
     };
   }, []);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [activePath]);
 
   function handleNavigate(path) {
     onNavigate?.(path);
@@ -238,6 +244,23 @@ export default function StudentLayout({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
+            {/* User avatar */}
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--blue), var(--blue2, var(--blue)))",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+              title={login}
+            >
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", letterSpacing: "0.02em" }}>
+                {login.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
             <DarkModeToggle />
             {/* Notification bell */}
             <button
@@ -297,6 +320,23 @@ export default function StudentLayout({
         <div className="layout-content layout-content-student">
           {children}
         </div>
+        <footer
+          style={{
+            padding: "12px var(--page-padding-x, 32px)",
+            borderTop: "1px solid var(--line2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 11,
+            color: "var(--dim)",
+          }}
+        >
+          <span>© 2026 Fleetmark</span>
+          <span>·</span>
+          <a href="/privacy" style={{ color: "var(--dim)", textDecoration: "none", fontWeight: 600 }}>Privacy</a>
+          <span>·</span>
+          <a href="/terms" style={{ color: "var(--dim)", textDecoration: "none", fontWeight: 600 }}>Terms</a>
+        </footer>
       </main>
 
       {/* ── Mobile bottom navigation ──────────── */}

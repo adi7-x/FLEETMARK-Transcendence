@@ -8,80 +8,121 @@ export default function Reservations() {
   const [reservations, setReservations] = useState([]);
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState("");
 
-  async function loadReservations() {
+  async function loadInitial() {
     setLoading(true);
     setError("");
     try {
       const token = localStorage.getItem("fleetmark_access");
       const headers = { Authorization: `Bearer ${token}` };
-      const [rRes, uRes] = await Promise.all([
-        fetch(`${API_BASE}/reservations/`, { headers }),
+      const [uRes] = await Promise.all([
         fetch(`${API_BASE}/auth/users/`, { headers }),
       ]);
-      if (!rRes.ok || !uRes.ok) throw new Error("Failed to load reservations.");
-      const [rData, uData] = await Promise.all([rRes.json(), uRes.json()]);
-      setReservations(Array.isArray(rData) ? rData : []);
+      if (!uRes.ok) throw new Error("Failed to load generic data.");
+      const [uData] = await Promise.all([uRes.json()]);
       setUsers(Array.isArray(uData) ? uData : []);
     } catch (err) {
-      setError(err.message || "Unable to load reservations.");
+      setError(err.message || "Unable to load data.");
     } finally {
       setLoading(false);
     }
   }
 
+  async function handleSearch(e) {
+    if (e) e.preventDefault();
+    setIsSearching(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("fleetmark_access");
+      const headers = { Authorization: `Bearer ${token}` };
+      const searchParams = new URLSearchParams();
+      if (query.trim()) searchParams.append("login", query.trim());
+      if (dateFrom) searchParams.append("date_from", dateFrom);
+      if (dateTo) searchParams.append("date_to", dateTo);
+
+      const res = await fetch(`${API_BASE}/reservations/search/?${searchParams.toString()}`, { headers });
+      if (!res.ok) throw new Error("Search failed.");
+      const data = await res.json();
+      setReservations(Array.isArray(data) ? data : []);
+      setHasSearched(true);
+    } catch (err) {
+      setError(err.message || "Unable to search reservations.");
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
   useEffect(() => {
-    loadReservations();
+    loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const onRefresh = () => loadReservations();
+    const onRefresh = () => {
+      loadInitial();
+      if (hasSearched) handleSearch();
+    };
     window.addEventListener("fleetmark:refresh", onRefresh);
     return () => window.removeEventListener("fleetmark:refresh", onRefresh);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return [];
-    return reservations.filter((reservation) => {
-      const user = users.find((item) => item.id === reservation.student);
-      const login = (user?.login_42 || "").toLowerCase();
-      return login.includes(term);
-    });
-  }, [query, reservations, users]);
-
-  function getStatus(reservation) {
-    const departure = reservation.trip_details?.departure_datetime;
-    if (!departure) return { label: "Unknown", color: "var(--mid)" };
-    const departureDate = new Date(departure);
-    const now = new Date();
-    if (departureDate > now) return { label: "Upcoming", color: "var(--blue)" };
-    return { label: "Completed", color: "var(--green)" };
-  }
+  }, [hasSearched, query, dateFrom, dateTo]);
 
   if (loading) return <SkeletonTable cols={5} rows={5} />;
 
-  const hasSearched = query.trim().length > 0;
-
   return (
     <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
-      <h1 style={{ margin: 0 }}>Reservations</h1>
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Type a student login to search..."
-        style={{ background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--line2)", borderRadius: "var(--radius-sm)", padding: "10px 12px", maxWidth: 360 }}
-      />
+      <h1 style={{ margin: 0 }}>Reservations Advanced Search</h1>
+      
+      <form onSubmit={handleSearch} style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap", background: "var(--surface)", padding: 16, borderRadius: "var(--radius-sm)", border: "1px solid var(--line2)" }}>
+        <div style={{ display: "grid", flex: 1, minWidth: 200 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Student Login</label>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Ex: jdoe"
+            style={{ background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--line2)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}
+          />
+        </div>
+        <div style={{ display: "grid" }}>
+          <label style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            style={{ background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--line2)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}
+          />
+        </div>
+        <div style={{ display: "grid" }}>
+          <label style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            style={{ background: "var(--surface)", color: "var(--ink)", border: "1px solid var(--line2)", borderRadius: "var(--radius-sm)", padding: "10px 12px" }}
+          />
+        </div>
+        <button 
+          type="submit" 
+          disabled={isSearching}
+          style={{ padding: "11px 20px", background: "var(--blue)", color: "white", borderRadius: "var(--radius-sm)", border: "none", fontWeight: 700, cursor: "pointer", height: 42, display: "flex", alignItems: "center", gap: 6 }}
+        >
+          {isSearching ? <span className="spinner-border" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <span className="material-symbols-outlined" style={{ fontSize: 18 }}>search</span>}
+          Search
+        </button>
+      </form>
+
       {error ? <p style={{ color: "var(--red)" }}>{error}</p> : null}
 
       {!hasSearched ? (
-        <EmptyState icon="🔍" title="Search for reservations" subtitle={`${reservations.length} total reservations loaded. Type a student login above to filter.`} />
-      ) : !filtered.length ? (
-        <EmptyState icon="🎫" title="No results" subtitle={`No reservations found for "${query}".`} />
+        <EmptyState icon="🔍" title="Search for reservations" subtitle={`Use the filters above to query student reservations.`} />
+      ) : !reservations.length ? (
+        <EmptyState icon="🎫" title="No results" subtitle={`No reservations found.`} />
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid var(--line2)", borderRadius: 10, overflow: "hidden" }}>
           <thead>
@@ -94,13 +135,20 @@ export default function Reservations() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((reservation) => {
+            {reservations.map((reservation) => {
               const user = users.find((item) => item.id === reservation.student);
-              const status = getStatus(reservation);
+              
+              let status = { label: "Unknown", color: "var(--mid)" };
               const departure = reservation.trip_details?.departure_datetime;
+              if (departure) {
+                const departureDate = new Date(departure);
+                const now = new Date();
+                status = departureDate > now ? { label: "Upcoming", color: "var(--blue)" } : { label: "Completed", color: "var(--green)" };
+              }
+
               return (
                 <tr key={reservation.id} style={{ borderTop: "1px solid var(--line2)" }}>
-                  <td style={{ padding: 10 }}>{user?.login_42 || reservation.student}</td>
+                  <td style={{ padding: 10 }}>{user?.login_42 || user?.username || reservation.student}</td>
                   <td style={{ padding: 10 }}>{reservation.trip_details?.route_name || reservation.trip}</td>
                   <td className="mono" style={{ padding: 10 }}>
                     {departure ? new Date(departure).toLocaleString() : "-"}

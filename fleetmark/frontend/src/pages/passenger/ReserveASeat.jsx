@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import SuccessCheckmark from "../../components/ui/SuccessCheckmark";
 import AdminEmptyState from "../../components/ui/AdminEmptyState";
 import { API_BASE, getUser } from "../../services/api";
+import ReportModal from "../../components/ui/ReportModal";
+import { useTranslation } from "../../context/TranslationContext";
 
 /** Skeleton matching reserve page layout (Fix 7a) */
 function ReserveSeatSkeleton() {
@@ -42,6 +44,7 @@ function ReserveSeatSkeleton() {
 
 export default function ReserveASeat() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [user, setUser] = useState(() => getUser());
   const [trips, setTrips] = useState([]);
   const [buses, setBuses] = useState([]);
@@ -52,6 +55,7 @@ export default function ReserveASeat() {
   const [toast, setToast] = useState("");
   /** null | 'check' (1.5s SVG) | 'toast' — Fix 1e */
   const [successPhase, setSuccessPhase] = useState(null);
+  const [reportingTrip, setReportingTrip] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -162,9 +166,9 @@ export default function ReserveASeat() {
         <span className="material-symbols-outlined" style={{ fontSize: 26, color: "var(--amber)", fontVariationSettings: "'FILL' 1" }}>my_location</span>
       </div>
       <div>
-        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>No home station set</h3>
+        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{t("noStationTitle")}</h3>
         <p style={{ margin: "8px auto 0", fontSize: 14, color: "var(--mid)", maxWidth: 340, lineHeight: 1.6 }}>
-          You need to choose your pickup stop before you can browse or reserve trips.
+          {t("noStationDesc")}
         </p>
       </div>
       <button
@@ -181,7 +185,7 @@ export default function ReserveASeat() {
           fontSize: 14,
         }}
       >
-        Choose My Stop
+        {t("chooseMyStop").replace(" →", "").replace(" ←", "")}
       </button>
     </div>
   );
@@ -190,6 +194,17 @@ export default function ReserveASeat() {
 
   return (
     <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
+      {reportingTrip && (
+        <ReportModal 
+          trip={reportingTrip} 
+          onClose={() => setReportingTrip(null)} 
+          onExpectedSuccess={() => {
+            setReportingTrip(null);
+            alert("Report submitted successfully.");
+          }} 
+        />
+      )}
+
       {successPhase === "check" ? (
         <div
           role="status"
@@ -206,13 +221,28 @@ export default function ReserveASeat() {
         >
           <div style={{ display: "grid", placeItems: "center", gap: 16 }}>
             <SuccessCheckmark size={72} />
-            <span className="mono" style={{ fontSize: 12, color: "var(--mid)", fontWeight: 600 }}>Confirming your seat…</span>
+            <span className="mono" style={{ fontSize: 12, color: "var(--mid)", fontWeight: 600 }}>{t("confirmingSeat")}</span>
           </div>
         </div>
       ) : null}
 
+      <style>{`
+        .student-trip-card {
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .student-trip-card:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-md);
+          border-color: color-mix(in srgb, var(--line) 60%, transparent);
+        }
+      `}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Available Trips</h2>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20 }}>{t("tonightsTrips")}</h2>
+          <span style={{ fontSize: 12, color: "var(--mid)", display: "inline-block", marginTop: 4 }}>
+            {t("fromTo")}
+          </span>
+        </div>
         <button
           type="button"
           onClick={load}
@@ -246,7 +276,7 @@ export default function ReserveASeat() {
           }}
         >
           <span className="material-symbols-outlined" style={{ color: "var(--green)", fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-          <p style={{ margin: 0, fontWeight: 700, color: "var(--ink)", fontSize: 15 }}>Seat reserved successfully!</p>
+          <p style={{ margin: 0, fontWeight: 700, color: "var(--ink)", fontSize: 15 }}>{t("seatReserved")}</p>
         </div>
       ) : null}
       {error ? <div style={{ color: "var(--red)" }}>{error}</div> : null}
@@ -254,16 +284,19 @@ export default function ReserveASeat() {
       {!trips.length ? (
         <AdminEmptyState variant="trips" onAction={() => (window.location.href = "/passenger/settings")} />
       ) : (
-        trips.map((trip) => {
+        trips.map((trip, idx) => {
           const alreadyReserved = reservedTripIds.includes(trip.id);
           const isFull = typeof trip.seats_left === "number" && trip.seats_left <= 0;
-          const state = alreadyReserved ? "Reserved" : isFull ? "Full" : "Reserve →";
+          const state = alreadyReserved ? t("reserved") : isFull ? t("full") : t("reserveArrow");
           const cap = Number(buses.find((bus) => bus.id === trip.bus)?.seat_capacity ?? trip.bus_seat_capacity ?? 0);
           const left = Number(trip.seats_left ?? 0);
+          const hour = new Date(trip.departure_datetime).getHours();
+          const isPeak = hour === 21 || hour === 22 || hour === 1;
+
           return (
             <article
               key={trip.id}
-              className="animate-in"
+              className="animate-in student-trip-card"
               style={{
                 border: "1px solid var(--line)",
                 borderRadius: "var(--radius-md)",
@@ -273,12 +306,21 @@ export default function ReserveASeat() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 gap: "var(--space-4)",
+                animationDelay: `${idx * 0.05}s`,
+                animationFillMode: "both"
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h3 style={{ margin: 0, fontSize: 16 }}>{trip.route_name || "Shuttle Trip"}</h3>
-                <p className="mono" style={{ margin: "var(--space-2) 0 0", color: "var(--mid)", fontSize: 13 }}>
-                  {new Date(trip.departure_datetime).toLocaleString()}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <h3 style={{ margin: 0, fontSize: 16 }}>{trip.route_name || "Shuttle Trip"}</h3>
+                  {isPeak ? (
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "color-mix(in srgb, var(--amber) 15%, transparent)", color: "var(--amber)", border: "1px solid color-mix(in srgb, var(--amber) 40%, transparent)", textTransform: "uppercase" }}>{t("peakHour")}</span>
+                  ) : (
+                    <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: "var(--surface2)", color: "var(--dim)", border: "1px solid var(--line2)", textTransform: "uppercase" }}>{t("normalHour")}</span>
+                  )}
+                </div>
+                <p className="mono" style={{ margin: 0, color: "var(--mid)", fontSize: 13 }}>
+                  {new Date(trip.departure_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 10 }}>
                   {trip.bus_name ? (
@@ -290,47 +332,62 @@ export default function ReserveASeat() {
                   {cap > 0 ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: seatColor(left, cap), fontWeight: 700 }}>
                       <span className="material-symbols-outlined" style={{ fontSize: 14 }}>event_seat</span>
-                      {left}/{cap} seats
+                      {left}/{cap} {t("seats")}
                     </span>
                   ) : typeof trip.seats_left === "number" ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--mid)", fontWeight: 700 }}>
                       <span className="material-symbols-outlined" style={{ fontSize: 14 }}>event_seat</span>
-                      {left} seats left
+                      {left} {t("seatsLeftLabel")}
                     </span>
                   ) : null}
                   {trip.route_stops_count ? (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--mid)" }}>
                       <span className="material-symbols-outlined" style={{ fontSize: 14 }}>location_on</span>
-                      {trip.route_stops_count} stops
+                      {trip.route_stops_count} {t("stops")}
                     </span>
                   ) : null}
                 </div>
               </div>
-              <button
-                type="button"
-                disabled={alreadyReserved || isFull || savingId === trip.id || successPhase === "check"}
-                onClick={() => reserve(trip.id)}
-                style={{
-                  minWidth: 120,
-                  borderRadius: "var(--radius-sm)",
-                  padding: "10px 12px",
-                  border: "1px solid var(--line)",
-                  background: alreadyReserved ? "var(--green-bg)" : isFull ? "var(--red-bg)" : "var(--blue-bg)",
-                  color: alreadyReserved ? "var(--green)" : isFull ? "var(--red)" : "var(--blue)",
-                  cursor: alreadyReserved || isFull ? "not-allowed" : "pointer",
-                  fontWeight: 700,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                {savingId === trip.id ? (
-                  <span className="spinner-border" style={{ width: 16, height: 16, borderWidth: 2 }} aria-hidden />
-                ) : (
-                  state
-                )}
-              </button>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button
+                  type="button"
+                  disabled={alreadyReserved || isFull || savingId === trip.id || successPhase === "check"}
+                  onClick={() => reserve(trip.id)}
+                  style={{
+                    minWidth: 120,
+                    borderRadius: "var(--radius-sm)",
+                    padding: "10px 12px",
+                    border: "1px solid var(--line)",
+                    background: alreadyReserved ? "var(--green-bg)" : isFull ? "var(--red-bg)" : "var(--blue-bg)",
+                    color: alreadyReserved ? "var(--green)" : isFull ? "var(--red)" : "var(--blue)",
+                    cursor: alreadyReserved || isFull ? "not-allowed" : "pointer",
+                    fontWeight: 700,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
+                >
+                  {savingId === trip.id ? (
+                    <span className="spinner-border" style={{ width: 16, height: 16, borderWidth: 2 }} aria-hidden />
+                  ) : (
+                    state
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportingTrip(trip)}
+                  style={{
+                    border: "none", background: "transparent", color: "var(--mid)",
+                    fontSize: 12, cursor: "pointer", fontWeight: 700,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 4
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>report</span>
+                  {t("reportIssue")}
+                </button>
+              </div>
             </article>
           );
         })

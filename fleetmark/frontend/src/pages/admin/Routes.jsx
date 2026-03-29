@@ -261,7 +261,7 @@ export default function Routes() {
               <input
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Downtown Express"
+                placeholder="e.g. Coin Blue Line"
                 style={{ background: "var(--surface2)", color: "var(--ink)", border: "1px solid var(--line)", borderRadius: 8, padding: 10 }}
               />
             </div>

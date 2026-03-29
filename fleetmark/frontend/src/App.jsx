@@ -5,6 +5,7 @@ import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import StudentLayout from "./components/layout/StudentLayout";
 import AdminLayout from "./components/layout/AdminLayout";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 
 import Landing from "./pages/Landing";
 import AuthCallback from "./pages/AuthCallback";
@@ -28,6 +29,8 @@ import Notifications from "./pages/passenger/Notifications";
 import ComingSoon from "./pages/driver/ComingSoon";
 import NotFound from "./pages/NotFound";
 import OnboardingTour from "./components/ui/OnboardingTour";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfService from "./pages/legal/TermsOfService";
 
 function studentTitleForPath(pathname) {
   if (pathname === "/passenger") return "Dashboard";
@@ -127,6 +130,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
 
       <Route
         path="/onboarding"
@@ -316,7 +321,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <ErrorBoundary>
+        <AppRoutes />
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

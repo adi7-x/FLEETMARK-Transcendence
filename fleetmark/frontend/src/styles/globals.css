@@ -336,3 +336,77 @@ textarea {
 .landing-hamburger {
   display: none;
 }
+
+/* ═══════════════════════════════════════════
+   RTL Layout Support (Arabic)
+   ═══════════════════════════════════════════ */
+
+[data-lang="ar"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Flip sidebar to right side */
+[data-lang="ar"] .layout-shell {
+  direction: rtl;
+}
+[data-lang="ar"] .sidebar {
+  border-left: 1px solid var(--line2);
+  border-right: none;
+}
+
+/* Flip flex layouts */
+[data-lang="ar"] .layout-header {
+  direction: rtl;
+}
+
+/* Keep Fleetmark brand in LTR */
+[data-lang="ar"] .brand-name,
+[data-lang="ar"] [dir="ltr"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Form and input alignment */
+[data-lang="ar"] input,
+[data-lang="ar"] select,
+[data-lang="ar"] textarea {
+  text-align: right;
+}
+
+/* Table header/cell alignment */
+[data-lang="ar"] th,
+[data-lang="ar"] td {
+  text-align: right;
+}
+[data-lang="ar"] th:last-child,
+[data-lang="ar"] td:last-child {
+  text-align: left;
+}
+
+/* Flip material icons in buttons */
+[data-lang="ar"] .material-symbols-outlined {
+  direction: ltr;
+}
+
+/* Bottom nav for mobile */
+[data-lang="ar"] .bottom-nav {
+  direction: rtl;
+}
+
+/* Flip row-actions to left side */
+[data-lang="ar"] .row-actions {
+  direction: ltr;
+}
+
+/* Modal stays centered/LTR-ish */
+[data-lang="ar"] .modal-backdrop-anim > div {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Mobile menu text alignment */
+[data-lang="ar"] .landing-mobile-menu a,
+[data-lang="ar"] .landing-mobile-menu button {
+  text-align: right;
+}

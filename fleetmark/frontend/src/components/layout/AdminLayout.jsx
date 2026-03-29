@@ -170,6 +170,23 @@ export default function AdminLayout({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
+            {/* User avatar */}
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #10b981, #34d399)",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+              title={login}
+            >
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", letterSpacing: "0.02em" }}>
+                {login.slice(0, 2).toUpperCase()}
+              </span>
+            </div>
             <DarkModeToggle />
             <Button
               variant="ghost"
@@ -187,6 +204,23 @@ export default function AdminLayout({
         <div className="layout-content">
           {children}
         </div>
+        <footer
+          style={{
+            padding: "12px var(--page-padding-x, 32px)",
+            borderTop: "1px solid var(--line2)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 11,
+            color: "var(--dim)",
+          }}
+        >
+          <span>© 2026 Fleetmark</span>
+          <span>·</span>
+          <a href="/privacy" style={{ color: "var(--dim)", textDecoration: "none", fontWeight: 600 }}>Privacy</a>
+          <span>·</span>
+          <a href="/terms" style={{ color: "var(--dim)", textDecoration: "none", fontWeight: 600 }}>Terms</a>
+        </footer>
       </main>
     </div>
   );

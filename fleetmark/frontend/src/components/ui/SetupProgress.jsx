@@ -1,11 +1,12 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../context/TranslationContext";
 
-const STEPS = [
-  { key: "stations", label: "Add stations",   path: "/admin/stations",  icon: "location_on",   desc: "Define pick-up & drop-off points" },
-  { key: "buses",    label: "Register buses",  path: "/admin/buses",     icon: "directions_bus", desc: "Add your fleet vehicles" },
-  { key: "routes",   label: "Create routes",   path: "/admin/routes",    icon: "map",            desc: "Link stations into routes" },
-  { key: "trips",    label: "Schedule trips",   path: "/admin/trips",     icon: "event_seat",     desc: "Assign bus + route + time" },
+const BASE_STEPS = [
+  { key: "stations", path: "/admin/stations",  icon: "location_on", labelKey: "setupAddStations", descKey: "setupAddStationsDesc" },
+  { key: "buses",    path: "/admin/buses",     icon: "directions_bus", labelKey: "setupAddBuses", descKey: "setupAddBusesDesc" },
+  { key: "routes",   path: "/admin/routes",    icon: "map", labelKey: "setupAddRoutes", descKey: "setupAddRoutesDesc" },
+  { key: "trips",    path: "/admin/trips",     icon: "event_seat", labelKey: "setupAddTrips", descKey: "setupAddTripsDesc" },
 ];
 
 /**
@@ -15,21 +16,37 @@ const STEPS = [
  */
 export default function SetupProgress({ currentStep, done }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [dismissed, setDismissed] = React.useState(() => localStorage.getItem("fleetmark_setup_dismissed") === "true");
+
+  if (dismissed) return null;
+
+  const STEPS = BASE_STEPS.map(s => ({
+    ...s,
+    label: t(s.labelKey),
+    desc: t(s.descKey)
+  }));
   const idx = STEPS.findIndex((s) => s.key === currentStep);
   if (idx < 0) return null;
 
   const next = idx < STEPS.length - 1 ? STEPS[idx + 1] : null;
   const stepNum = idx + 1;
 
+  function dismiss() {
+    localStorage.setItem("fleetmark_setup_dismissed", "true");
+    setDismissed(true);
+  }
+
   // If current step done and there IS a next step → show "next step" banner
   if (done && next) {
     return (
       <div
         style={{
+          position: "relative",
           background: "color-mix(in srgb, var(--green, #22c55e) 8%, transparent)",
           border: "1px solid color-mix(in srgb, var(--green, #22c55e) 25%, var(--line))",
           borderRadius: 10,
-          padding: "14px 18px",
+          padding: "14px 40px 14px 18px",
           display: "flex",
           alignItems: "center",
           gap: 12,
@@ -52,10 +69,10 @@ export default function SetupProgress({ currentStep, done }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <strong style={{ fontSize: 13, color: "var(--green, #22c55e)" }}>
-            Step {stepNum} complete!
+            {t("setupStepCompleteTitle").replace("{{num}}", stepNum)}
           </strong>
           <span style={{ fontSize: 13, color: "var(--mid)", marginLeft: 8 }}>
-            Next up: {next.desc}
+            {t("setupNextUp").replace("{{desc}}", next.desc)}
           </span>
         </div>
         <button
@@ -81,6 +98,13 @@ export default function SetupProgress({ currentStep, done }) {
           {next.label}
           <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
         </button>
+        <button
+          type="button"
+          onClick={dismiss}
+          style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--mid)", cursor: "pointer", display: "grid", placeItems: "center", opacity: 0.6 }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+        </button>
       </div>
     );
   }
@@ -90,10 +114,11 @@ export default function SetupProgress({ currentStep, done }) {
     return (
       <div
         style={{
+          position: "relative",
           background: "color-mix(in srgb, var(--green, #22c55e) 8%, transparent)",
           border: "1px solid color-mix(in srgb, var(--green, #22c55e) 25%, var(--line))",
           borderRadius: 10,
-          padding: "14px 18px",
+          padding: "14px 40px 14px 18px",
           display: "flex",
           alignItems: "center",
           gap: 12,
@@ -104,11 +129,18 @@ export default function SetupProgress({ currentStep, done }) {
           celebration
         </span>
         <div>
-          <strong style={{ fontSize: 13, color: "var(--green, #22c55e)" }}>Setup complete!</strong>
+          <strong style={{ fontSize: 13, color: "var(--green, #22c55e)" }}>{t("setupAllComplete")}</strong>
           <span style={{ fontSize: 13, color: "var(--mid)", marginLeft: 8 }}>
-            Your shuttle system is ready to go.
+            {t("setupAllCompleteDesc")}
           </span>
         </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--mid)", cursor: "pointer", display: "grid", placeItems: "center", opacity: 0.6 }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+        </button>
       </div>
     );
   }
@@ -117,10 +149,11 @@ export default function SetupProgress({ currentStep, done }) {
   return (
     <div
       style={{
+        position: "relative",
         background: "color-mix(in srgb, var(--blue) 6%, transparent)",
         border: "1px solid color-mix(in srgb, var(--blue) 18%, var(--line))",
         borderRadius: 10,
-        padding: "12px 18px",
+        padding: "12px 40px 12px 18px",
         display: "flex",
         alignItems: "center",
         gap: 12,
@@ -145,7 +178,7 @@ export default function SetupProgress({ currentStep, done }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong style={{ fontSize: 13, color: "var(--blue)" }}>
-          Step {stepNum} of {STEPS.length}
+          {t("setupStepOf").replace("{{current}}", stepNum).replace("{{total}}", STEPS.length)}
         </strong>
         <span style={{ fontSize: 13, color: "var(--mid)", marginLeft: 8 }}>
           {STEPS[idx].desc}
@@ -166,6 +199,13 @@ export default function SetupProgress({ currentStep, done }) {
           />
         ))}
       </div>
+      <button
+        type="button"
+        onClick={dismiss}
+        style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--mid)", cursor: "pointer", display: "grid", placeItems: "center", opacity: 0.6 }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+      </button>
     </div>
   );
 }

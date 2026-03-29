@@ -917,9 +917,15 @@ export default function Landing() {
             {text.footerCopy}
           </div>
         </div>
-        <p className="mono" style={{ margin: 0, color: "var(--dim)", fontSize: 11, letterSpacing: "0.04em" }}>
-          {text.footerTech}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <p className="mono" style={{ margin: 0, color: "var(--dim)", fontSize: 11, letterSpacing: "0.04em" }}>
+            {text.footerTech}
+          </p>
+          <span style={{ color: "var(--dim)", fontSize: 11 }}>·</span>
+          <a href="/privacy" style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textDecoration: "none" }}>Privacy Policy</a>
+          <span style={{ color: "var(--dim)", fontSize: 11 }}>·</span>
+          <a href="/terms" style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textDecoration: "none" }}>Terms of Service</a>
+        </div>
         </div>
       </footer>
     </div>

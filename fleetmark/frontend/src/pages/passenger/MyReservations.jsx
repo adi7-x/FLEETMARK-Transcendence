@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import EmptyState from "../../components/ui/EmptyState";
+import ReportModal from "../../components/ui/ReportModal";
 import { API_BASE, getUser } from "../../services/api";
 
 function ReservationsSkeleton() {
@@ -29,6 +30,7 @@ export default function MyReservations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(null);
+  const [reportingTrip, setReportingTrip] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -81,6 +83,17 @@ export default function MyReservations() {
 
   return (
     <div className="animate-in" style={{ display: "grid", gap: "var(--space-4)" }}>
+      {reportingTrip && (
+        <ReportModal 
+          trip={reportingTrip.trip_details || reportingTrip} 
+          onClose={() => setReportingTrip(null)} 
+          onExpectedSuccess={() => {
+            setReportingTrip(null);
+            alert("Report submitted successfully.");
+          }} 
+        />
+      )}
+      
       {/* Header with tabs and refresh */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "inline-flex", border: "1px solid var(--line2)", borderRadius: "999px", overflow: "hidden" }}>
@@ -179,6 +192,19 @@ export default function MyReservations() {
                   {departure ? new Date(departure).toLocaleString() : "Time not available"}
                 </p>
               </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setReportingTrip(item)}
+                  style={{
+                    border: "none", background: "transparent", color: "var(--mid)",
+                    fontSize: 12, cursor: "pointer", fontWeight: 700,
+                    display: "flex", alignItems: "center", gap: 4
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>report</span>
+                  Report
+                </button>
               {tab === "upcoming" ? (
                 <button
                   type="button"
@@ -196,6 +222,7 @@ export default function MyReservations() {
                   Cancel
                 </button>
               ) : null}
+              </div>
             </article>
           );
         })

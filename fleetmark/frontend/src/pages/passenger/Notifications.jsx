@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-
+import { useTranslation } from "../../context/TranslationContext";
+import { API_BASE } from "../../services/api";
 const PRIORITY_COLORS = {
   urgent: "var(--red)",
   warning: "var(--amber, orange)",
@@ -27,14 +28,20 @@ function timeAgo(dateStr) {
 }
 
 export default function Notifications() {
+  const { t } = useTranslation();
   const [announcements, setAnnouncements] = useState([]);
-  const [dismissed, setDismissed] = useState([]);
   const [tab, setTab] = useState("all");
+  const token = localStorage.getItem("fleetmark_access");
 
-  function load() {
+  async function load() {
+    if (!token) return;
     try {
-      setAnnouncements(JSON.parse(localStorage.getItem("fleetmark_announcements") || "[]"));
-      setDismissed(JSON.parse(localStorage.getItem("fleetmark_dismissed_announcements") || "[]"));
+      const res = await fetch(`${API_BASE}/announcements/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setAnnouncements(await res.json());
+      }
     } catch { /* ignore */ }
   }
 
@@ -42,18 +49,22 @@ export default function Notifications() {
     load();
     window.addEventListener("fleetmark:refresh", load);
     return () => window.removeEventListener("fleetmark:refresh", load);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function dismiss(id) {
-    const updated = [...dismissed, id];
-    setDismissed(updated);
-    localStorage.setItem("fleetmark_dismissed_announcements", JSON.stringify(updated));
-    // Dispatch refresh so bell badge updates
+  async function dismiss(id) {
+    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, is_dismissed: true } : a));
     window.dispatchEvent(new CustomEvent("fleetmark:refresh"));
+    if (token) {
+      await fetch(`${API_BASE}/announcements/${id}/dismiss/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
+    }
   }
 
-  const unread = announcements.filter((a) => !dismissed.includes(a.id));
-  const urgent = announcements.filter((a) => a.priority === "urgent" && !dismissed.includes(a.id));
+  const unread = announcements.filter((a) => !a.is_dismissed);
+  const urgent = announcements.filter((a) => a.priority === "urgent" && !a.is_dismissed);
 
   // Determine visible list based on tab
   let visible;
@@ -62,27 +73,30 @@ export default function Notifications() {
   else visible = announcements;
 
   const tabs = [
-    { id: "all", label: "All", count: announcements.length },
-    { id: "unread", label: "Unread", count: unread.length },
-    { id: "urgent", label: "Urgent", count: urgent.length },
+    { id: "all", label: t("notifAll"), count: announcements.length },
+    { id: "unread", label: t("notifUnread"), count: unread.length },
+    { id: "urgent", label: t("notifUrgent"), count: urgent.length },
   ];
 
   const emptyMessages = {
-    all: { icon: "notifications_none", title: "No notifications", sub: "You're all caught up. Announcements from the logistics team will appear here." },
-    unread: { icon: "mark_email_read", title: "Inbox zero! 🌟", sub: "You've read everything. Nice job staying on top of things." },
-    urgent: { icon: "verified", title: "No urgent alerts 🎉", sub: "There are no urgent announcements right now. Relax!" },
+    all: { icon: "notifications_none", title: t("notifEmptyAllTitle"), sub: t("notifEmptyAllSub") },
+    unread: { icon: "mark_email_read", title: t("notifEmptyUnreadTitle"), sub: t("notifEmptyUnreadSub") },
+    urgent: { icon: "verified", title: t("notifEmptyUrgentTitle"), sub: t("notifEmptyUrgentSub") },
   };
 
   return (
     <div className="animate-in" style={{ display: "grid", gap: "var(--space-5)" }}>
       {/* ── Header + Tab bar ──────────────────── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Notifications</h1>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{t("notifTitle")}</h1>
         {unread.length > 0 && tab !== "unread" && (
           <button
             type="button"
-            onClick={() => {
-              unread.forEach((a) => dismiss(a.id));
+            onClick={async () => {
+              const pending = unread.map(u => fetch(`${API_BASE}/announcements/${u.id}/dismiss/`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(()=>{}));
+              setAnnouncements(prev => prev.map(a => ({ ...a, is_dismissed: true })));
+              window.dispatchEvent(new CustomEvent("fleetmark:refresh"));
+              await Promise.all(pending);
             }}
             style={{
               border: "none",
@@ -93,7 +107,7 @@ export default function Notifications() {
               cursor: "pointer",
             }}
           >
-            Mark all as read
+            {t("notifMarkRead")}
           </button>
         )}
       </div>
@@ -149,7 +163,7 @@ export default function Notifications() {
       ) : (
         <div style={{ display: "grid", gap: "var(--space-3)" }}>
           {visible.map((a) => {
-            const isRead = dismissed.includes(a.id);
+            const isRead = a.is_dismissed;
             const prColor = PRIORITY_COLORS[a.priority] || PRIORITY_COLORS.info;
             const prIcon = PRIORITY_ICONS[a.priority] || "info";
 
@@ -237,7 +251,7 @@ export default function Notifications() {
                         transition: "all 0.15s ease",
                       }}
                     >
-                      Dismiss
+                      {t("notifDismiss")}
                     </button>
                   )}
                 </div>

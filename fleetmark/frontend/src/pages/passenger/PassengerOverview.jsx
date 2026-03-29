@@ -4,20 +4,13 @@ import EmptyState from "../../components/ui/EmptyState";
 import RouteMap from "../../components/ui/RouteMap";
 import useCountUp from "../../hooks/useCountUp";
 import { API_BASE, getUser } from "../../services/api";
+import { useTranslation } from "../../context/TranslationContext";
 
-function getUrgentAnnouncements() {
-  try {
-    const all = JSON.parse(localStorage.getItem("fleetmark_announcements") || "[]");
-    const dismissed = JSON.parse(localStorage.getItem("fleetmark_dismissed_announcements") || "[]");
-    return all.filter((a) => a.priority === "urgent" && !dismissed.includes(a.id));
-  } catch { return []; }
-}
-
-function getGreeting() {
+function getGreetingKey() {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12) return "greetMorning";
+  if (hour < 18) return "greetAfternoon";
+  return "greetEvening";
 }
 
 function timeAgo(dateStr) {
@@ -116,10 +109,12 @@ function PassengerStatCard({ label, value, sub, icon, color, countUp }) {
 
 export default function PassengerOverview() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [user, setUser] = useState(() => getUser());
   const [trips, setTrips] = useState([]);
   const [buses, setBuses] = useState([]);
   const [reservations, setReservations] = useState([]);
+  const [urgentAlerts, setUrgentAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const aliveRef = useRef(true);
@@ -157,12 +152,13 @@ export default function PassengerOverview() {
       // Start trips/reservations/buses using cached user while profile loads
       let cachedUser = getUser();
 
-      const [meData, resData, busData] = await Promise.all([
+      const [meData, resData, busData, annData] = await Promise.all([
         mePromise,
         cachedUser?.id
           ? fetchWithTimeout(`${API_BASE}/reservations/?user_id=${encodeURIComponent(cachedUser.id)}`)
           : Promise.resolve([]),
         fetchWithTimeout(`${API_BASE}/buses/`),
+        fetchWithTimeout(`${API_BASE}/announcements/`),
       ]);
 
       // Update user if fresh profile came back
@@ -182,6 +178,7 @@ export default function PassengerOverview() {
         setTrips(Array.isArray(tripData) ? tripData : []);
         setReservations(Array.isArray(resData) ? resData : []);
         setBuses(Array.isArray(busData) ? busData : []);
+        setUrgentAlerts(Array.isArray(annData) ? annData.filter(a => a.priority === "urgent" && !a.is_dismissed) : []);
       }
     } catch (err) {
       if (aliveRef.current) setError(err.message || "Unable to load overview.");
@@ -210,7 +207,7 @@ export default function PassengerOverview() {
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }).length;
 
-  const urgentAlerts = getUrgentAnnouncements();
+
   const userName = user?.login_42 || "there";
 
   return (
@@ -226,11 +223,11 @@ export default function PassengerOverview() {
             lineHeight: 1.15,
           }}
         >
-          {getGreeting()}, {userName}{" "}
+          {t(getGreetingKey())}, {userName}{" "}
           <span style={{ fontSize: 26 }}>👋</span>
         </h1>
         <p style={{ margin: "6px 0 0", fontSize: 14, color: "var(--mid)" }}>
-          Here's your shuttle overview for today
+          {t("dashSubtitle")}
         </p>
       </section>
 
@@ -242,7 +239,7 @@ export default function PassengerOverview() {
           onClick={() => navigate("/passenger/reserve")}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--blue)" }}>event_seat</span>
-          Book a Seat
+          {t("quickBookSeat")}
         </button>
         <button
           type="button"
@@ -250,7 +247,7 @@ export default function PassengerOverview() {
           onClick={() => navigate("/passenger/live-map")}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--green)" }}>directions_bus</span>
-          Track My Bus
+          {t("quickTrackBus")}
         </button>
         <button
           type="button"
@@ -258,7 +255,7 @@ export default function PassengerOverview() {
           onClick={() => navigate("/passenger/history")}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18, color: "var(--amber)" }}>calendar_month</span>
-          My Trips
+          {t("quickMyTrips")}
         </button>
       </section>
 
@@ -332,7 +329,7 @@ export default function PassengerOverview() {
           <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--amber-light)", display: "grid", placeItems: "center" }}>
             <span className="material-symbols-outlined" style={{ fontSize: 24, color: "var(--amber)", fontVariationSettings: "'FILL' 1" }}>cloud_off</span>
           </div>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Couldn't load dashboard</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t("couldntLoad")}</h3>
           <p style={{ margin: 0, fontSize: 13, color: "var(--mid)", maxWidth: 320 }}>{error}</p>
           <button
             type="button"
@@ -349,7 +346,7 @@ export default function PassengerOverview() {
               marginTop: 4,
             }}
           >
-            Try Again
+            {t("tryAgain")}
           </button>
         </section>
       )}
@@ -374,9 +371,9 @@ export default function PassengerOverview() {
             <span className="material-symbols-outlined" style={{ fontSize: 26, color: "var(--amber)", fontVariationSettings: "'FILL' 1" }}>my_location</span>
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Set your home station</h3>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{t("setStationTitle")}</h3>
             <p style={{ margin: "8px auto 0", fontSize: 14, color: "var(--mid)", maxWidth: 360, lineHeight: 1.6 }}>
-              Choose your pickup stop so we can show you upcoming buses and let you reserve a seat.
+              {t("setStationDesc")}
             </p>
           </div>
           <button
@@ -394,7 +391,7 @@ export default function PassengerOverview() {
               marginTop: 4,
             }}
           >
-            Choose My Stop &rarr;
+            {t("chooseMyStop")}
           </button>
         </section>
       ) : !error && tonightTrip ? (
@@ -425,7 +422,7 @@ export default function PassengerOverview() {
             <div style={{ padding: "28px 28px", display: "grid", gap: 18 }}>
               <div>
                 <span className="mono" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.2em", color: "var(--blue)", fontWeight: 700 }}>
-                  Tonight
+                  {t("tonight")}
                 </span>
                 <h2 style={{ margin: "8px 0 6px", fontSize: 38, lineHeight: 1, letterSpacing: "-0.04em" }}>
                   {tonightTrip.route_name || "—"}
@@ -443,21 +440,21 @@ export default function PassengerOverview() {
                   {!hasReservedTonight ? (
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", animation: "fm-pulse 1.8s ease-in-out infinite" }} />
                   ) : null}
-                  {hasReservedTonight ? "Reserved ✓" : "In Transit"}
+                  {hasReservedTonight ? `${t("reserved")} ✓` : t("inTransit")}
                 </span>
               </div>
 
               <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, display: "flex", gap: 30 }}>
                 <div>
-                  <span style={{ fontSize: 10, textTransform: "uppercase", color: "var(--dim)", fontWeight: 700 }}>Seats Left</span>
+                  <span style={{ fontSize: 10, textTransform: "uppercase", color: "var(--dim)", fontWeight: 700 }}>{t("seatsLeft")}</span>
                   <div className="mono" style={{ fontSize: 18 }}>{cap > 0 || left >= 0 ? `${left}/${cap || "—"}` : "-"}</div>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, textTransform: "uppercase", color: "var(--dim)", fontWeight: 700 }}>Bus</span>
+                  <span style={{ fontSize: 10, textTransform: "uppercase", color: "var(--dim)", fontWeight: 700 }}>{t("bus")}</span>
                   <div className="mono" style={{ fontSize: 18 }}>{tonightTrip.bus_name || "—"}</div>
                 </div>
                 <div>
-                  <span style={{ fontSize: 10, textTransform: "uppercase", color: "var(--dim)", fontWeight: 700 }}>Stops</span>
+                  <span style={{ fontSize: 10, textTransform: "uppercase", color: "var(--dim)", fontWeight: 700 }}>{t("stops")}</span>
                   <div className="mono" style={{ fontSize: 18 }}>{tonightTrip.route_stops_count || "—"}</div>
                 </div>
               </div>
@@ -482,7 +479,7 @@ export default function PassengerOverview() {
                   transition: "all 0.18s ease",
                 }}
               >
-                {hasReservedTonight ? "Reserved ✓" : "Reserve Now"}
+                {hasReservedTonight ? `${t("reserved")} ✓` : t("reserveNow")}
               </button>
             </div>
           </div>
@@ -512,10 +509,9 @@ export default function PassengerOverview() {
               <span className="material-symbols-outlined" style={{ fontSize: 28, color: "var(--blue)", fontVariationSettings: "'FILL' 1" }}>nightlight</span>
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>No buses running right now</h3>
+              <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em" }}>{t("noBusesTitle")}</h3>
               <p style={{ margin: "8px auto 0", fontSize: 14, color: "var(--mid)", maxWidth: 380, lineHeight: 1.6 }}>
-                Fleetmark operates exclusive night shuttles from <strong>21:00 PM to 6:00 AM</strong>. 
-                Check back later tonight or browse the schedule to plan your ride.
+                {t("noBusesDesc")}
               </p>
             </div>
             <button
@@ -534,7 +530,7 @@ export default function PassengerOverview() {
                 boxShadow: "0 4px 12px color-mix(in srgb, var(--blue) 30%, transparent)",
               }}
             >
-              Browse Schedule &rarr;
+              {t("browseSchedule")}
             </button>
           </div>
           
@@ -543,19 +539,19 @@ export default function PassengerOverview() {
              <div style={{ border: "1px solid var(--border)", borderRadius: 14, padding: "20px 24px", background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                   <span className="material-symbols-outlined" style={{ color: "var(--green)", fontSize: 20 }}>verified_user</span>
-                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Guaranteed Seat</h4>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{t("guaranteedSeat")}</h4>
                 </div>
                 <p style={{ margin: 0, fontSize: 13, color: "var(--mid)", lineHeight: 1.5 }}>
-                  Book your seat before leaving campus and your spot is 100% reserved. No more waiting helplessly at the bus stop.
+                  {t("guaranteedSeatDesc")}
                 </p>
              </div>
              <div style={{ border: "1px solid var(--border)", borderRadius: 14, padding: "20px 24px", background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
                   <span className="material-symbols-outlined" style={{ color: "var(--amber)", fontSize: 20 }}>my_location</span>
-                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Live Tracking</h4>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{t("liveTracking")}</h4>
                 </div>
                 <p style={{ margin: 0, fontSize: 13, color: "var(--mid)", lineHeight: 1.5 }}>
-                  Watch your bus move in real-time on our live map. Only step outside when the shuttle is approaching your station.
+                  {t("liveTrackingDesc")}
                 </p>
              </div>
           </div>
@@ -568,25 +564,25 @@ export default function PassengerOverview() {
       ) : !error ? (
         <section className="stat-grid animate-in" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "var(--space-4)" }}>
           <PassengerStatCard
-            label="My Stop"
-            value={user?.station_name || "Not set"}
+            label={t("statMyStop")}
+            value={user?.station_name || t("statNotSet")}
             sub=""
             icon="location_on"
             color="var(--green)"
             countUp={false}
           />
           <PassengerStatCard
-            label="This Month"
+            label={t("statThisMonth")}
             value={ridesThisMonth}
-            sub="rides this month"
+            sub={t("statRidesMonth")}
             icon="calendar_month"
             color="var(--blue)"
             countUp
           />
           <PassengerStatCard
-            label="Total Rides"
+            label={t("statTotalRides")}
             value={reservations.length}
-            sub="lifetime"
+            sub={t("statLifetime")}
             icon="directions_bus"
             color="var(--amber)"
             countUp
@@ -606,7 +602,7 @@ export default function PassengerOverview() {
               onClick={() => navigate("/passenger/history")}
               style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--blue)" }}
             >
-              View History
+              {t("viewHistory")}
             </button>
           </div>
           <div style={{ display: "grid", gap: 10 }}>
@@ -650,7 +646,7 @@ export default function PassengerOverview() {
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                  Completed
+                  {t("completed")}
                 </span>
               </div>
             ))}
@@ -668,8 +664,8 @@ export default function PassengerOverview() {
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 28, color: "var(--dim)" }}>schedule</span>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>No recent activity</p>
-                <p style={{ margin: 0, fontSize: 12, color: "var(--mid)" }}>Your rides will appear here once you book a seat.</p>
+                <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{t("noRecentActivity")}</p>
+                <p style={{ margin: 0, fontSize: 12, color: "var(--mid)" }}>{t("ridesAppearHere")}</p>
                 <button
                   type="button"
                   onClick={() => navigate("/passenger/reserve")}
@@ -685,13 +681,43 @@ export default function PassengerOverview() {
                     marginTop: 4,
                   }}
                 >
-                  Book a Seat →
+                  {t("bookASeat")}
                 </button>
               </div>
             ) : null}
           </div>
         </section>
       )}
+      {/* ── FAB — Quick reserve ────────────────── */}
+      <button
+        type="button"
+        onClick={() => navigate("/passenger/reserve")}
+        aria-label="Book a seat"
+        style={{
+          position: "fixed",
+          bottom: 90,
+          right: 24,
+          zIndex: 15,
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          border: "none",
+          background: "var(--blue)",
+          color: "#fff",
+          boxShadow: "0 6px 20px color-mix(in srgb, var(--blue) 40%, transparent)",
+          cursor: "pointer",
+          display: "grid",
+          placeItems: "center",
+          transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        }}
+        onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
+        onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 26, fontVariationSettings: "'FILL' 1" }}>
+          event_seat
+        </span>
+      </button>
     </div>
   );
 }

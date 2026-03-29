@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AdminEmptyState from "../../components/ui/AdminEmptyState";
-
-const STORAGE_KEY = "fleetmark_announcements";
-
-function getAnnouncements() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-}
-function saveAnnouncements(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-}
+import { API_BASE } from "../../services/api";
 
 const emptyForm = { title: "", message: "", priority: "info" };
 const PRIORITY_OPTIONS = [
@@ -24,9 +16,21 @@ export default function Announcements() {
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  function load() {
-    setAnnouncements(getAnnouncements());
-    setLoading(false);
+  const token = localStorage.getItem("fleetmark_access");
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/announcements/`, { headers });
+      if (!res.ok) throw new Error("Failed to load announcements.");
+      const data = await res.json();
+      setAnnouncements(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || "Failed to load announcements.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -39,30 +43,37 @@ export default function Announcements() {
     return () => window.removeEventListener("fleetmark:refresh", onRefresh);
   }, []);
 
-  function publish() {
+  async function publish() {
     if (!form.title.trim() || !form.message.trim()) {
       setError("Title and message are required.");
       return;
     }
     setError("");
-    const entry = {
-      id: Date.now(),
-      title: form.title.trim(),
-      message: form.message.trim(),
-      priority: form.priority,
-      created_at: new Date().toISOString(),
-    };
-    const updated = [entry, ...announcements];
-    saveAnnouncements(updated);
-    setAnnouncements(updated);
-    setForm(emptyForm);
+    try {
+      const payload = {
+        title: form.title.trim(),
+        message: form.message.trim(),
+        priority: form.priority,
+      };
+      const res = await fetch(`${API_BASE}/announcements/`, { method: "POST", headers, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error("Publish failed.");
+      const newEntry = await res.json();
+      setAnnouncements((prev) => [newEntry, ...prev]);
+      setForm(emptyForm);
+    } catch (err) {
+      setError(err.message || "Publish failed.");
+    }
   }
 
-  function remove(id) {
-    const updated = announcements.filter((a) => a.id !== id);
-    saveAnnouncements(updated);
-    setAnnouncements(updated);
-    setConfirmDelete(null);
+  async function remove(id) {
+    try {
+      const res = await fetch(`${API_BASE}/announcements/${id}/`, { method: "DELETE", headers });
+      if (!res.ok) throw new Error("Delete failed.");
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      setConfirmDelete(null);
+    } catch (err) {
+      setError(err.message || "Delete failed.");
+    }
   }
 
   if (loading) {

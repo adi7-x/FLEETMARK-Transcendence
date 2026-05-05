@@ -5,23 +5,33 @@
 
 .PHONY: build up up-build down restart logs logs-backend logs-cron logs-frontend \
         shell-be shell-fe db migrate seed clean prune help \
-        scaffold-project scaffold-app scaffold-frontend \
-        logs-waf logs-vault vault-ui vault-status vault-reseal ssl-gen
+        scaffold-project scaffold-app scaffold-frontend ssl
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Docker Compose Commands
 # ──────────────────────────────────────────────────────────────────────────────
 
+## Generate SSL certificates (skips if already exist)
+ssl:
+	@bash waf/generate-ssl.sh
+
 ## Build all containers
 build:
 	docker compose build
 
-## Start all services
-up:
+## Start all services and seed the database
+up: ssl
 	docker compose up -d
+	@echo "⏳ Waiting for backend to be ready..."
+	@sleep 10
+	docker compose exec backend python manage.py seed_data
+
+## Run backend in Docker and start frontend locally
+run: up
+	cd fleetmark/frontend && npm run dev
 
 ## Start all services with build
-up-build:
+up-build: ssl
 	docker compose up -d --build
 
 ## Stop all services
@@ -52,14 +62,6 @@ logs-cron:
 logs-frontend:
 	docker compose logs -f frontend
 
-## View WAF/ModSecurity logs
-logs-waf:
-	docker compose logs -f waf
-
-## View Vault logs
-logs-vault:
-	docker compose logs -f vault vault-init
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Shell Access
 # ──────────────────────────────────────────────────────────────────────────────
@@ -89,58 +91,14 @@ seed:
 	docker compose exec backend python manage.py seed_data
 
 # ──────────────────────────────────────────────────────────────────────────────
-# WAF / ModSecurity
-# ──────────────────────────────────────────────────────────────────────────────
-
-## Generate self-signed SSL certs for WAF
-ssl-gen:
-	@./waf/generate-ssl.sh
-
-## View ModSecurity audit logs (blocked requests)
-waf-audit:
-	docker compose exec waf cat /var/log/modsecurity/modsec_audit.log
-
-## Tail WAF logs live
-waf-tail:
-	docker compose exec waf tail -f /var/log/modsecurity/modsec_audit.log
-
-# ──────────────────────────────────────────────────────────────────────────────
-# HashiCorp Vault
-# ──────────────────────────────────────────────────────────────────────────────
-
-## Check Vault status
-vault-status:
-	docker compose exec vault vault status
-
-## Open Vault UI info
-vault-ui:
-	@echo "Vault UI: https://localhost:8443/vault/ui"
-	@echo "Or directly: http://localhost:8200/ui (if port exposed)"
-
-## Re-run Vault init (re-seeds secrets)
-vault-reinit:
-	docker compose rm -sf vault-init
-	docker compose up -d vault-init
-
-## List secrets in Vault
-vault-secrets:
-	docker compose exec vault sh -c 'export VAULT_TOKEN=$$(cat /vault/approle/root-token) && vault kv list secret/ssbs/'
-
-## Read a specific secret (Usage: make vault-read path=database)
-vault-read:
-	@if [ -z "$(path)" ]; then \
-		echo "Usage: make vault-read path=database"; \
-		exit 1; \
-	fi
-	docker compose exec vault sh -c 'export VAULT_TOKEN=$$(cat /vault/approle/root-token) && vault kv get secret/ssbs/$(path)'
-
-# ──────────────────────────────────────────────────────────────────────────────
 # Cleanup
 # ──────────────────────────────────────────────────────────────────────────────
 
-## Remove containers, volumes, and images
+## Remove containers, volumes, images, and database data
 clean:
 	docker compose down -v --rmi all
+	sudo rm -rf ./database/db_data
+	mkdir -p ./database
 
 ## Docker system prune
 prune:
@@ -152,26 +110,26 @@ prune:
 
 ## Scaffold Django project (creates 'ssbs' settings folder)
 scaffold-project:
-	@echo "Scaffolding Django Project..."
+	@echo "🏗️  Scaffolding Django Project..."
 	docker compose exec backend django-admin startproject ssbs .
-	@echo "Project 'ssbs' created. Restarting backend..."
+	@echo "✅ Project 'ssbs' created. Restarting backend..."
 	docker compose restart backend
 
 ## Scaffold Django app (Usage: make scaffold-app name=myapp)
 scaffold-app:
 	@if [ -z "$(name)" ]; then \
-		echo "Error: name is required. Usage: make scaffold-app name=myapp"; \
+		echo "❌ Error: name is required. Usage: make scaffold-app name=myapp"; \
 		exit 1; \
 	fi
-	@echo "Scaffolding App: $(name)..."
+	@echo "🏗️  Scaffolding App: $(name)..."
 	docker compose exec backend sh -lc 'mkdir -p apps/$(name) && python manage.py startapp $(name) apps/$(name)'
-	@echo "App '$(name)' created in apps/$(name)."
+	@echo "✅ App '$(name)' created in apps/$(name)."
 
 ## Scaffold React frontend with Vite
 scaffold-frontend:
-	@echo "Scaffolding React Frontend..."
+	@echo "🏗️  Scaffolding React Frontend..."
 	docker compose exec -it frontend npm create vite@latest . -- --template react
-	@echo "Frontend created. Restarting to install dependencies..."
+	@echo "✅ Frontend created. Restarting to install dependencies..."
 	docker compose restart frontend
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -196,8 +154,6 @@ help:
 	@echo "  logs-backend  View backend logs"
 	@echo "  logs-cron     View cron logs"
 	@echo "  logs-frontend View frontend logs"
-	@echo "  logs-waf      View WAF logs"
-	@echo "  logs-vault    View Vault logs"
 	@echo ""
 	@echo "Shell:"
 	@echo "  shell-be      Shell into backend container"
@@ -207,18 +163,6 @@ help:
 	@echo "Django:"
 	@echo "  migrate       Run migrations"
 	@echo "  seed          Run seed_data command"
-	@echo ""
-	@echo "WAF / ModSecurity:"
-	@echo "  ssl-gen       Generate self-signed SSL certs"
-	@echo "  waf-audit     View ModSecurity audit log"
-	@echo "  waf-tail      Tail WAF logs live"
-	@echo ""
-	@echo "Vault:"
-	@echo "  vault-status        Check Vault status"
-	@echo "  vault-ui            Show Vault UI URL"
-	@echo "  vault-reinit        Re-seed Vault secrets"
-	@echo "  vault-secrets       List all secret paths"
-	@echo "  vault-read path=x   Read a specific secret"
 	@echo ""
 	@echo "Scaffold:"
 	@echo "  scaffold-project           Create Django project"

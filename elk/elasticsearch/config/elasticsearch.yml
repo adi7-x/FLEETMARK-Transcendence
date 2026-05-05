@@ -15,3 +15,4 @@ xpack.security.transport.ssl.certificate: /usr/share/elasticsearch/config/certif
 xpack.security.transport.ssl.certificate_authorities: /usr/share/elasticsearch/config/certificates/ca.crt
 
 
+cluster.routing.allocation.disk.threshold_enabled: false

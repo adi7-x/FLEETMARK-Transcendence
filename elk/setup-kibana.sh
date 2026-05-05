@@ -6,7 +6,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${YELLOW}Waiting for Kibana to be ready...${NC}"
-until curl -s -k https://localhost:5601/api/status | grep -q '"level":"available"'; do
+until curl -s -k https://kibana:5601/api/status | grep -q '"level":"available"'; do
   echo "Waiting..."
   sleep 5
 done
@@ -15,8 +15,8 @@ echo -e "${GREEN}✓ Kibana is ready!${NC}\n"
 
 # Create index pattern for logstash logs
 echo -e "${YELLOW}Creating Kibana index pattern...${NC}"
-curl -k -X POST "https://localhost:5601/api/saved_objects/index-pattern/logstash-*" \
-  -u elastic:atahtah \
+curl -k -X POST "https://kibana:5601/api/saved_objects/index-pattern/logstash-*" \
+  -u elastic:$ELASTIC_PASSWORD \
   -H 'kbn-xsrf: true' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -30,8 +30,8 @@ echo -e "\n${GREEN}✓ Index pattern created!${NC}\n"
 
 # Set default index pattern
 echo -e "${YELLOW}Setting default index pattern...${NC}"
-curl -k -X POST "https://localhost:5601/api/kibana/settings/defaultIndex" \
-  -u elastic:atahtah \
+curl -k -X POST "https://kibana:5601/api/kibana/settings/defaultIndex" \
+  -u elastic:$ELASTIC_PASSWORD \
   -H 'kbn-xsrf: true' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -53,7 +53,7 @@ echo "  • Beats input:    localhost:5044"
 echo ""
 echo "Credentials:"
 echo "  • Username: elastic"
-echo "  • Password: atahtah"
+echo "  • Password: $ELASTIC_PASSWORD"
 echo ""
 echo "Next Steps:"
 echo "  1. Change the default password for production"

@@ -1,0 +1,246 @@
+/* ═══════════════════════════════════════════════════════
+   Fleet Design System — tokens.css v2.0
+   Old variable names are kept as aliases for backward
+   compatibility. New semantic names are the source of
+   truth for all new components.
+═══════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="light"] {
+  /* ── Backgrounds ──────────────────────────────────── */
+  --bg:       #f8fafc;   /* page canvas — off-white */
+  --surface:  #ffffff;   /* cards, panels lift off bg  */
+  --surface2: #f1f5f9;   /* nested content, table alt  */
+  --surface3: #e8edf4;   /* input bg, strong hover     */
+
+  /* semantic aliases */
+  --surface-1: var(--surface);
+  --surface-2: var(--surface2);
+  --surface-3: var(--surface3);
+
+  /* ── Text ─────────────────────────────────────────── */
+  --ink:  #0f172a;   /* primary text  */
+  --ink2: #1e293b;   /* slightly softer */
+  --mid:  #475569;   /* secondary — richer than old #64748b */
+  --dim:  #64748b;   /* tertiary / placeholders — WCAG AA compliant */
+
+  --text-primary:   var(--ink);
+  --text-secondary: var(--mid);
+  --text-tertiary:  var(--dim);
+
+  /* ── Borders ──────────────────────────────────────── */
+  --line:  #e2e8f0;
+  --line2: rgba(0, 0, 0, 0.08);
+  --border:        var(--line);
+  --border-strong: #cbd5e1;
+
+  /* ── Primary accent — indigo / violet ────────────── */
+  --blue:        #6366f1;   /* indigo-500  */
+  --blue2:       #8b5cf6;   /* violet-500  */
+  --blue-light:  #eef2ff;   /* indigo-50   */
+  --blue-mid:    #e0e7ff;   /* indigo-100  */
+  --blue-border: #c7d2fe;   /* indigo-200  */
+  /* backward-compat aliases */
+  --blue-bg:  var(--blue-light);
+  --blue-bdr: var(--blue-border);
+  /* semantic accent aliases (use these in new code) */
+  --accent:        var(--blue);
+  --accent2:       var(--blue2);
+  --accent-light:  var(--blue-light);
+  --accent-mid:    var(--blue-mid);
+  --accent-border: var(--blue-border);
+  --accent-glow:   rgba(99, 102, 241, 0.20);
+
+  /* ── Status: green ────────────────────────────────── */
+  --green:        #16a34a;
+  --green-light:  #f0fdf4;
+  --green-border: #bbf7d0;
+  --green-bg:     var(--green-light);
+  --green-bdr:    var(--green-border);
+
+  /* ── Status: amber ────────────────────────────────── */
+  --amber:        #d97706;
+  --amber-light:  #fffbeb;
+  --amber-border: #fde68a;
+  --amber-bg:     var(--amber-light);
+
+  /* ── Status: red ──────────────────────────────────── */
+  --red:        #dc2626;
+  --red-light:  #fef2f2;
+  --red-border: #fecaca;
+  --red-bg:     var(--red-light);
+
+  /* ── Sidebar / Nav tokens ─────────────────────────── */
+  --sidebar-bg:      var(--surface);
+  --sidebar-border:  var(--line);
+  --nav-active-bg:   var(--blue-light);
+  --nav-active-text: #4338ca;   /* indigo-700 — WCAG AA on indigo-50 bg */
+  --nav-active-bar:  var(--blue);
+  --nav-idle-text:   #64748b;
+
+  /* ── Misc (kept for compat) ───────────────────────── */
+  --surface-active:      var(--surface2);
+  --orbit:               #7e22ce;
+  --inverse-surface:     #0f172a;
+  --on-inverse:          #ffffff;
+  --hero-gradient-start: #0f172a;
+  --r:    10px;
+  --mono: "JetBrains Mono", monospace;
+
+  /* ── Radius ───────────────────────────────────────── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --card-radius: var(--radius-md);
+
+  /* ── Spacing ──────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  56px;
+  --space-10: 80px;
+
+  /* semantic spacing shortcuts */
+  --card-padding:      var(--space-5);
+  --card-padding-lg:   var(--space-6);
+  --section-gap:       var(--space-7);
+  --page-padding-x:    32px;
+  --sidebar-width:     240px;
+  --header-height:     56px;
+
+  /* ── Typography ───────────────────────────────────── */
+  --font-size-xs:      11px;
+  --font-size-sm:      12px;
+  --font-size-base:    14px;
+  --font-size-md:      15px;
+  --font-size-lg:      18px;
+  --font-size-xl:      22px;
+  --font-size-2xl:     28px;
+  --font-size-display: 40px;
+
+  --font-regular:   400;
+  --font-medium:    500;
+  --font-semibold:  600;
+  --font-bold:      700;
+  --font-extrabold: 800;
+
+  --leading-tight:   1.2;
+  --leading-snug:    1.3;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.6;
+
+  /* ── Font families ────────────────────────────────── */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  /* ── Shadows ──────────────────────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* ── Component sizing ─────────────────────────────── */
+  --btn-height-sm: 32px;
+  --btn-height-md: 36px;
+  --btn-height-lg: 40px;
+}
+
+[data-theme="dark"] {
+  /* ── Backgrounds (NO pure black) ──────────────────── */
+  --bg:       #0d1117;   /* deep navy-black like GitHub */
+  --surface:  #161b22;   /* cards                       */
+  --surface2: #1c2230;   /* nested / alt rows           */
+  --surface3: #212836;   /* inputs, hover               */
+
+  --surface-1: var(--surface);
+  --surface-2: var(--surface2);
+  --surface-3: var(--surface3);
+
+  /* ── Text ─────────────────────────────────────────── */
+  --ink:  #e6edf3;
+  --ink2: #c9d1d9;
+  --mid:  #8b949e;
+  --dim:  #8b949e;   /* WCAG AA compliant on dark bg */
+
+  --text-primary:   var(--ink);
+  --text-secondary: var(--mid);
+  --text-tertiary:  var(--dim);
+
+  /* ── Borders ──────────────────────────────────────── */
+  --line:          #21262d;
+  --line2:         rgba(255, 255, 255, 0.08);
+  --border:        var(--line);
+  --border-strong: #30363d;
+
+  /* ── Primary accent — indigo / violet ────────────── */
+  --blue:        #818cf8;   /* indigo-400 — readable on dark bg, not neon */
+  --blue2:       #a78bfa;   /* violet-400                                 */
+  --blue-light:  rgba(99, 102, 241, 0.10);
+  --blue-mid:    rgba(99, 102, 241, 0.15);
+  --blue-border: rgba(99, 102, 241, 0.28);
+  --blue-bg:     var(--blue-light);
+  --blue-bdr:    var(--blue-border);
+  /* semantic accent aliases */
+  --accent:        var(--blue);
+  --accent2:       var(--blue2);
+  --accent-light:  var(--blue-light);
+  --accent-mid:    var(--blue-mid);
+  --accent-border: var(--blue-border);
+  --accent-glow:   rgba(99, 102, 241, 0.25);
+
+  /* ── Status: green ────────────────────────────────── */
+  --green:        #3fb950;
+  --green-light:  rgba(63, 185, 80, 0.08);
+  --green-border: rgba(63, 185, 80, 0.30);
+  --green-bg:     var(--green-light);
+  --green-bdr:    var(--green-border);
+
+  /* ── Status: amber ────────────────────────────────── */
+  --amber:        #d29922;
+  --amber-light:  rgba(210, 153, 34, 0.10);
+  --amber-border: rgba(210, 153, 34, 0.30);
+  --amber-bg:     var(--amber-light);
+
+  /* ── Status: red ──────────────────────────────────── */
+  --red:        #f85149;
+  --red-light:  rgba(248, 81, 73, 0.08);
+  --red-border: rgba(248, 81, 73, 0.30);
+  --red-bg:     var(--red-light);
+
+  /* ── Sidebar / Nav ────────────────────────────────── */
+  --sidebar-bg:      var(--bg);
+  --sidebar-border:  var(--line);
+  --nav-active-bg:   rgba(99, 102, 241, 0.12);
+  --nav-active-text: #818cf8;   /* indigo-400 */
+  --nav-active-bar:  #818cf8;
+  --nav-idle-text:   #8b949e;
+
+  /* ── Misc ─────────────────────────────────────────── */
+  --surface-active:      var(--surface2);
+  --orbit:               #c084fc;
+  --inverse-surface:     #f0f6fc;
+  --on-inverse:          #0d1117;
+  --hero-gradient-start: #ffffff;
+  --r:    10px;
+  --mono: "JetBrains Mono", monospace;
+
+  /* ── Shadows (heavier in dark) ────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.20);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.50), 0 2px 8px rgba(0, 0, 0, 0.30);
+}
+
+/* ── RTL support ────────────────────────────────────── */
+[data-lang="ar"] {
+  direction: rtl;
+  text-align: right;
+}
+
+[data-lang="ar"] .ltr-only {
+  direction: ltr;
+  text-align: left;
+}

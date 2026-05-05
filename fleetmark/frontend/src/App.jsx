@@ -1,0 +1,329 @@
+import React, { useMemo } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+
+import ProtectedRoute from "./components/layout/ProtectedRoute";
+import StudentLayout from "./components/layout/StudentLayout";
+import AdminLayout from "./components/layout/AdminLayout";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
+
+import Landing from "./pages/Landing";
+import AuthCallback from "./pages/AuthCallback";
+import Onboarding from "./pages/student/Onboarding";
+import PassengerOverview from "./pages/passenger/PassengerOverview";
+import ReserveASeat from "./pages/passenger/ReserveASeat";
+import MyReservations from "./pages/passenger/MyReservations";
+import ProfileSettings from "./pages/passenger/ProfileSettings";
+import TripTracker from "./pages/passenger/TripTracker";
+import AdminOverview from "./pages/admin/Overview";
+import AdminTrips from "./pages/admin/Trips";
+import BusManagement from "./pages/admin/BusManagement";
+import AdminRoutesPage from "./pages/admin/Routes";
+import Drivers from "./pages/admin/Drivers";
+import AdminReservations from "./pages/admin/Reservations";
+import Reports from "./pages/admin/Reports";
+import AdminSettings from "./pages/admin/Settings";
+import Stations from "./pages/admin/Stations";
+import Announcements from "./pages/admin/Announcements";
+import Notifications from "./pages/passenger/Notifications";
+import ComingSoon from "./pages/driver/ComingSoon";
+import NotFound from "./pages/NotFound";
+import OnboardingTour from "./components/ui/OnboardingTour";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfService from "./pages/legal/TermsOfService";
+
+function studentTitleForPath(pathname) {
+  if (pathname === "/passenger") return "Dashboard";
+  if (pathname === "/passenger/reserve") return "Book a Seat";
+  if (pathname === "/passenger/history") return "My Trips";
+  if (pathname === "/passenger/settings") return "Profile";
+  if (pathname === "/passenger/live-map") return "Track Bus";
+  if (pathname === "/passenger/notifications") return "Notifications";
+  return "Dashboard";
+}
+
+function StudentShell({ children }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const lang = localStorage.getItem("fleetmark_lang") || "en";
+  const pageTitle = useMemo(() => studentTitleForPath(location.pathname), [location.pathname]);
+
+  return (
+    <StudentLayout
+      user={user}
+      activePath={location.pathname}
+      onNavigate={navigate}
+      onLogout={() => {
+        logout();
+        navigate("/");
+      }}
+      pageTitle={pageTitle}
+      language={lang}
+      onLanguageChange={(next) => {
+        localStorage.setItem("fleetmark_lang", next);
+        document.documentElement.setAttribute("data-lang", next);
+      }}
+    >
+      <OnboardingTour role="STUDENT" />
+      {children}
+    </StudentLayout>
+  );
+}
+
+function adminTitleForPath(pathname) {
+  if (pathname === "/admin") return "Dashboard";
+  if (pathname === "/admin/trips") return "Trips Management";
+  if (pathname === "/admin/buses") return "Bus Management";
+  if (pathname === "/admin/stations") return "Stations";
+  if (pathname === "/admin/routes") return "Routes";
+  if (pathname === "/admin/drivers") return "Drivers";
+  if (pathname === "/admin/reservations") return "History";
+  if (pathname === "/admin/reports") return "Reports";
+  if (pathname === "/admin/announcements") return "Announcements";
+  if (pathname === "/admin/settings") return "Settings";
+  return "Admin";
+}
+
+function AdminShell({ children }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const lang = localStorage.getItem("fleetmark_lang") || "en";
+  const pageTitle = useMemo(() => adminTitleForPath(location.pathname), [location.pathname]);
+
+  function handleNewTrip() {
+    if (location.pathname === "/admin/trips") {
+      window.dispatchEvent(new CustomEvent("fleetmark:new-trip"));
+    } else {
+      navigate("/admin/trips", { state: { openTripForm: true } });
+    }
+  }
+
+  return (
+    <AdminLayout
+      user={user}
+      activePath={location.pathname}
+      onNavigate={navigate}
+      onNewTrip={handleNewTrip}
+      pageTitle={pageTitle}
+      onLogout={() => {
+        logout();
+        navigate("/");
+      }}
+      language={lang}
+      onLanguageChange={(next) => {
+        localStorage.setItem("fleetmark_lang", next);
+        document.documentElement.setAttribute("data-lang", next);
+      }}
+    >
+      <OnboardingTour role="LOGISTICS_STAFF" />
+      {children}
+    </AdminLayout>
+  );
+}
+
+function AppRoutes() {
+  const { user } = useAuth();
+
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <Onboarding />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/passenger"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <StudentShell>
+              <PassengerOverview />
+            </StudentShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/passenger/live-map"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <StudentShell>
+              <TripTracker />
+            </StudentShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/passenger/reserve"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <StudentShell>
+              <ReserveASeat />
+            </StudentShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/passenger/history"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <StudentShell>
+              <MyReservations />
+            </StudentShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/passenger/settings"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <StudentShell>
+              <ProfileSettings />
+            </StudentShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/passenger/notifications"
+        element={
+          <ProtectedRoute role="STUDENT" user={user}>
+            <StudentShell>
+              <Notifications />
+            </StudentShell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <AdminOverview />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/trips"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <AdminTrips />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/buses"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <BusManagement />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/stations"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <Stations />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/routes"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <AdminRoutesPage />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/drivers"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <Drivers />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reservations"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <AdminReservations />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <Reports />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/announcements"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <Announcements />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <ProtectedRoute role="LOGISTICS_STAFF" user={user}>
+            <AdminShell>
+              <AdminSettings />
+            </AdminShell>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/driver"
+        element={
+          <ProtectedRoute role="DRIVER" user={user}>
+            <ComingSoon />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <ErrorBoundary>
+        <AppRoutes />
+      </ErrorBoundary>
+    </BrowserRouter>
+  );
+}

@@ -6,7 +6,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "${YELLOW}Waiting for Elasticsearch to be ready...${NC}"
-until curl -s -k -u elastic:atahtah https://localhost:9200/_cluster/health | grep -q '"status":"green"\|"status":"yellow"'; do
+until curl -s -k -u elastic:$ELASTIC_PASSWORD https://elasticsearch:9200/_cluster/health | grep -q '"status":"green"\|"status":"yellow"'; do
   echo "Waiting..."
   sleep 5
 done
@@ -15,8 +15,8 @@ echo -e "${GREEN}✓ Elasticsearch is ready!${NC}\n"
 
 # Create ILM policy with retention and archiving
 echo -e "${YELLOW}Creating ILM policy for log retention...${NC}"
-curl -k -X PUT "https://localhost:9200/_ilm/policy/logstash-policy" \
-  -u elastic:atahtah \
+curl -k -X PUT "https://elasticsearch:9200/_ilm/policy/logstash-policy" \
+  -u elastic:$ELASTIC_PASSWORD \
   -H 'Content-Type: application/json' \
   -d '{
   "policy": {
@@ -70,8 +70,8 @@ echo -e "\n${GREEN}✓ ILM policy created!${NC}\n"
 
 # Create index template
 echo -e "${YELLOW}Creating index template...${NC}"
-curl -k -X PUT "https://localhost:9200/_index_template/logstash-template" \
-  -u elastic:atahtah \
+curl -k -X PUT "https://elasticsearch:9200/_index_template/logstash-template" \
+  -u elastic:$ELASTIC_PASSWORD \
   -H 'Content-Type: application/json' \
   -d '{
   "index_patterns": ["logstash-*"],
@@ -108,8 +108,8 @@ echo -e "\n${GREEN}✓ Index template created!${NC}\n"
 
 # Create initial index
 echo -e "${YELLOW}Creating initial logstash index...${NC}"
-curl -k -X PUT "https://localhost:9200/logstash-000001" \
-  -u elastic:atahtah \
+curl -k -X PUT "https://elasticsearch:9200/logstash-000001" \
+  -u elastic:$ELASTIC_PASSWORD \
   -H 'Content-Type: application/json' \
   -d '{
   "aliases": {

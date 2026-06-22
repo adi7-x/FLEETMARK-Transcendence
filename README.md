@@ -101,4 +101,4 @@ For detailed technical documentation including database schema, API endpoints, s
 
 ---
 
-Built with heart at 1337 Coding School (42 Network) . Casablanca, Morocco
+Built with heart at 1337 Coding School (42 Network).
